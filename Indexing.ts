@@ -10,11 +10,9 @@ class IndexHandler {
     }
 
     async initialize() {
-        await datafetcher.getNameIndexFile().then(data => {
-            this.nameIndex = convertStringIndexs(data)
-        })
-        await datafetcher.getAuthorIndexFile().then(data => {
-            this.authorIndex = convertBigintIndexs(data)
+        await Promise.all([datafetcher.getNameIndexFile(), datafetcher.getAuthorIndexFile()]).then(values => {
+            this.nameIndex = convertStringIndexs(values[0])
+            this.authorIndex = convertBigintIndexs(values[1])
         })
     }
 
@@ -112,15 +110,8 @@ class IndexHandler {
     async findPossibleAuthorIndexsForName(names: string[]): Promise<bigint[]> {
         let result:Set<bigint>|null = null
         let indexfiles = this.findIndexsForName(names)
-        let iterator = indexfiles.entries()
-        let itresult = iterator.next()
-        while (!itresult.done) {
-            let [hash, namesforindex] = itresult.value
-            let nameindex:string[]
-            await this.datafetcher.getDataString(hash).then(data =>
-                nameindex = data.split("\n")
-            )
-            namesforindex.forEach(name => {
+        await this.processIndexDict(indexfiles, (nameindex, names) => {
+            names.forEach(name => {
                 let indexs = findAuthorIndexsForName(nameindex, name)
                 if (indexs.length != 0) {
                     if (result == null) {
@@ -136,8 +127,39 @@ class IndexHandler {
                     }
                 }
             })
-            itresult = iterator.next()
-        }
+        })
+        // let iterator = indexfiles.entries()
+        // let itresult = iterator.next()
+        // let namesForIndexList:Array<string[]> = []
+        // let promises: Promise<string>[] = []
+        // while (!itresult.done) {
+        //     let [hash, namesforindex] = itresult.value
+        //     namesForIndexList.push(namesforindex)
+        //     promises.push(this.datafetcher.getDataString(hash))
+        //     itresult = iterator.next()
+        // }
+        // await Promise.all(promises).then(values => { 
+        //     for (let i = 0; i < values.length; i++) {
+        //         const namesforindex = namesForIndexList[i]
+        //         const nameindex = values[i].split("\n")
+        //         namesforindex.forEach(name => {
+        //             let indexs = findAuthorIndexsForName(nameindex, name)
+        //             if (indexs.length != 0) {
+        //                 if (result == null) {
+        //                     result = new Set(indexs)
+        //                 } else {
+        //                     let keep:bigint[] = []
+        //                     indexs.forEach(index => {
+        //                         if (result.has(index)) {
+        //                             keep.push(index)
+        //                         }
+        //                     })
+        //                     result = new Set(keep)
+        //                 }
+        //             }
+        //         })
+        //     }
+        // })
         if (result == null) {
             return []
         } else {
@@ -159,12 +181,7 @@ class IndexHandler {
         })
         let rows:Map<string,string>[] = []
         let dict = this.findIndexsForAuthor(authorindexs)
-        let iterator = dict.entries()
-        let itresult = iterator.next()
-        while (!itresult.done) {
-            const [hash, bigintforhash] = itresult.value
-            let authorlines: string[]
-            await datafetcher.getDataString(hash).then(data => authorlines = data.split("\n"))
+        await this.processIndexDict(dict, (authorlines, bigintforhash) => {
             bigintforhash.forEach(authorindex =>  {
                 const row = findAuthorInFile(authorlines, authorindex)
                 if (row != null) {
@@ -182,14 +199,58 @@ class IndexHandler {
                     rows.push(newobj)
                 }
             })
-            itresult = iterator.next()
-        }
+        })
+        // let iterator = dict.entries()
+        // let itresult = iterator.next()
+        // while (!itresult.done) {
+        //     const [hash, bigintforhash] = itresult.value
+        //     let authorlines: string[]
+        //     await datafetcher.getDataString(hash).then(data => authorlines = data.split("\n"))
+        //     bigintforhash.forEach(authorindex =>  {
+        //         const row = findAuthorInFile(authorlines, authorindex)
+        //         if (row != null) {
+        //             const rowelements = row.trim().split('\t')
+        //             const newobj = new Map<string,string>()
+        //             newobj.set("id", rowelements[0])
+        //             newobj.set("rank", rowelements[1])
+        //             newobj.set("NormalizedName", rowelements[2])
+        //             newobj.set("DisplayName", rowelements[3])
+        //             newobj.set("LastKnownAffiliation", rowelements[4])
+        //             newobj.set("PaperCount", rowelements[5])
+        //             newobj.set("PaperFamilyCount", rowelements[6])
+        //             newobj.set("CitationCount", rowelements[7])
+        //             newobj.set("CreatedDate", rowelements[8])
+        //             rows.push(newobj)
+        //         }
+        //     })
+        //     itresult = iterator.next()
+        // }
         return new Promise((resolve, reject) => resolve(rows)) 
     }
 
     async findAuthorRowsNonNormalized(name: string) {
         let normname = name.toLocaleLowerCase().normalize("NFKD").split(" ")
         return this.findAuthorRows(normname)
+    }
+
+    async processIndexDict<T>(dict: Map<string, T>, func: (s: string[], t: T) => void) {
+        let iterator = dict.entries()
+        let itresult = iterator.next()
+        let valueForIndexList:Array<T> = []
+        let promises: Promise<string>[] = []
+        while (!itresult.done) {
+            let [hash, namesforindex] = itresult.value
+            valueForIndexList.push(namesforindex)
+            promises.push(this.datafetcher.getDataString(hash))
+            itresult = iterator.next()
+        }
+        await Promise.all(promises).then(values => { 
+            for (let i = 0; i < values.length; i++) {
+                const valueforIndex = valueForIndexList[i]
+                const nameindex = values[i].split("\n")
+                func(nameindex, valueforIndex)
+            }
+        })
     }
 }
 
@@ -257,12 +318,13 @@ function findAuthorInFile(authorlines: string[], index: bigint): string {
     return result
 }
 
-const datafetcher:df.df.DataFetcher = new df.df.ArweaveDataFetcher()
+const datafetcher:df.df.DataFetcher = new df.df.TestDataFetcher()
 // const datafetcher:df.df.DataFetcher = new df.df.TestDataFetcher()
 const indexer = new IndexHandler(datafetcher)
 
 async function main() {
     await indexer.initialize();
+    console.log('initialized')
     // console.log(indexer.findIndexsForName(["simon", "ware"]))
     // indexer.findPossibleAuthorIndexsForName(["simon", "ware"]).then(data => console.log(data))
     // indexer.findPossibleAuthorIndexsForName(["simon", "ian", "ware"]).then(data => console.log(data))

@@ -11,6 +11,8 @@ export module df {
 
         getAuthorIndexFile(): Promise<string>
 
+        getAuthorPaperIndexFile(): Promise<string>
+
         getPaperIndexFile(): Promise<string>
     }
 
@@ -32,9 +34,15 @@ export module df {
             return this.getDataString(
                 path.join('E:', 'indexs', 'authorchunkindex.txt'))
         }
+
+        getAuthorPaperIndexFile(): Promise<string> {
+            return this.getDataString(
+                path.join('E:', 'indexs', 'authorpaperchunkindex.txt'))
+        }
     
         getPaperIndexFile(): Promise<string> {
-            throw new Error("Method not implemented.");
+            return this.getDataString(
+                path.join('E:', 'indexs', 'paperchunkindex.txt'))
         }
     }    
 
