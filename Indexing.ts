@@ -198,12 +198,43 @@ class IndexHandler {
         })
     }
 
+    async findPossibleIndexsForKeys<K, V>(keys: K[],
+         indexSet:IndexSet<K, string>, stringToIndex: (s: string) => V): Promise<V[]> {
+        let result:Set<V>|null = null
+        let indexfiles = indexSet.getIndexForHashMap(keys)
+        await this.processIndexDict(indexfiles, (indexfile, keys) => {
+            keys.forEach(key => {
+                let indexs = findAuthorIndexsForName(indexfile, String(key), stringToIndex)
+                if (indexs.length != 0) {
+                    if (result == null) {
+                        result = new Set(indexs)
+                    } else {
+                        let keep:V[] = []
+                        indexs.forEach(index => {
+                            if (result.has(index)) {
+                                keep.push(index)
+                            }
+                        })
+                        result = new Set(keep)
+                    }
+                }
+            })
+        })
+        return new Promise((resolve, reject) => {
+            if (result == null) {  
+                resolve([])
+            } else {
+                resolve(Array.from(result))
+            }
+        })
+    }
+
     async findPossibleAuthorIndexsForName(names: string[]): Promise<bigint[]> {
         let result:Set<bigint>|null = null
         let indexfiles = this.nameIndex.getIndexForHashMap(names)
         await this.processIndexDict(indexfiles, (nameindex, names) => {
             names.forEach(name => {
-                let indexs = findAuthorIndexsForName(nameindex, name)
+                let indexs = findAuthorIndexsForName(nameindex, name, BigInt)
                 if (indexs.length != 0) {
                     if (result == null) {
                         result = new Set(indexs)
@@ -230,7 +261,7 @@ class IndexHandler {
 
     async findAuthorRows(names: string[]): Promise<AuthorRow[]> {
         let authorindexs:bigint[]
-        await this.findPossibleAuthorIndexsForName(names).then(data => {
+        await this.findPossibleIndexsForKeys(names, this.nameIndex, BigInt).then(data => {
             authorindexs = data
         })
         let rows:AuthorRow[] = []
@@ -309,14 +340,15 @@ function convertBigintIndexs(indexfile:string): Array<[bigint, bigint, string]> 
     return result
 }
 
-function findAuthorIndexsForName(nameIndexs: string[], name: string): bigint[] {
-    let result:bigint[] = []
+function findAuthorIndexsForName<T>(nameIndexs: string[],
+     name: string, stringtoindex: (s: string) => T): T[] {
+    let result:T[] = []
     let modname = name + "\t"
     nameIndexs.forEach(line => {
         if (line.startsWith(modname)) {
             let splitline = line.split("\t")
             for (let i = 1; i < splitline.length; i++) {
-                result.push(BigInt(splitline[i]))
+                result.push(stringtoindex(splitline[i]))
             }
         }
     })
