@@ -17,6 +17,8 @@ export module df {
     export interface DataFetcher {
         getDataString(hash:string): Promise<string>
 
+        getIndexFile(fetchType: FetchRequest, otherKeys: BigInt)
+
         getNameIndexFile(): Promise<string>
 
         getAuthorIndexFile(): Promise<string>
@@ -33,6 +35,23 @@ export module df {
             return new Promise((resolve, reject) => {
                 resolve(result)
             })
+        }
+
+        getIndexFile(fetchType: FetchRequest, otherKeys: BigInt = BigInt(0)) {
+            switch (fetchType) {
+                case FetchRequest.AUTHORNAMEINDEX:
+                    return this.getDataString(
+                        path.join('E:', 'indexs', 'indexofindexs.txt'))
+                case FetchRequest.AUTHORINDEX:
+                    return this.getDataString(
+                        path.join('E:', 'indexs', 'authorchunkindex.txt'))
+                case FetchRequest.PAPERINDEX:
+                    return this.getDataString(
+                        path.join('E:', 'indexs', 'paperchunkindex.txt'))
+                case FetchRequest.AUTHORPAPERINDEX:
+                    return this.getDataString(
+                        path.join('E:', 'indexs', 'authorpaperchunkindex.txt'))
+            }
         }
     
         getNameIndexFile(): Promise<string> {
@@ -70,8 +89,26 @@ export module df {
             });
             this.textencoder = new TextDecoder
         }
+
         getAuthorPaperIndexFile(): Promise<string> {
             throw new Error('Method not implemented.');
+        }
+
+        getIndexFile(fetchType: FetchRequest, otherKeys: BigInt = BigInt(0)) {
+            switch (fetchType) {
+                case FetchRequest.AUTHORNAMEINDEX:
+                    return this.getDataString(
+                        path.join('E:', 'indexs', 'indexofindexs.txt'))
+                case FetchRequest.AUTHORINDEX:
+                    return this.getDataString(
+                        path.join('E:', 'indexs', 'authorchunkindex.txt'))
+                case FetchRequest.PAPERINDEX:
+                    return this.getDataString(
+                        path.join('E:', 'indexs', 'paperchunkindex.txt'))
+                case FetchRequest.AUTHORPAPERINDEX:
+                    return this.getDataString(
+                        path.join('E:', 'indexs', 'authorpaperchunkindex.txt'))
+            }
         }
 
         getDataString(hash: string): Promise<string> {
