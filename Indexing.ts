@@ -318,7 +318,7 @@ function findAuthorInFile(authorlines: string[], index: bigint): string {
     return result
 }
 
-const datafetcher:df.df.DataFetcher = new df.df.TestDataFetcher()
+const datafetcher:df.df.DataFetcher = new df.df.ArweaveDataFetcher()
 // const datafetcher:df.df.DataFetcher = new df.df.TestDataFetcher()
 const indexer = new IndexHandler(datafetcher)
 
