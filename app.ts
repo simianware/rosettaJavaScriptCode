@@ -4,6 +4,7 @@ const port = 3000
 const openpgp = require('openpgp')
 
 import { df } from "./DataFetcher"
+// import * as df from './DataFetcher'
 import { indexing } from "./Indexing"
 
 let privateKeyg: Uint8Array
@@ -24,16 +25,28 @@ let publicKeyg: Uint8Array
 })();
 
 
-const datafetcher:df.df.DataFetcher = new df.df.ArweaveDataFetcher()
+// const datafetcher:df.df.DataFetcher = new df.df.ArweaveDataFetcher()
 const datafetcher:df.DataFetcher = new df.TestDataFetcher()
 const indexer = new indexing.IndexHandler(datafetcher)
 indexer.initialize()
 
-app.get('/api/getauthors/:namestring', (req, res) => {
+// function 
+
+app.get('/api/getauthors/:namestring/:publickey', async (req, res) => {
     let namestring:string = req.params.namestring
+    let privatekey:Uint8Array = req.params.publickey
     console.log(namestring)
-    let result = indexer.findAuthorRowsNonNormalized(namestring)
+    let result
+    await indexer.findAuthorRowsNonNormalized(namestring).then(data => {
+        result = data
+    })
+    console.log(result)
+    const encrypt = 
     res.send(result)
+})
+
+app.get('/api/getpublickey/', (req, res) => {
+    res.send(publicKeyg)
 })
 
 app.listen(port, () => {

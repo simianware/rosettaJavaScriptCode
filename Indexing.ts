@@ -16,15 +16,15 @@ interface Indexer<K, V> {
 }
 
 class AffiliationRow {
-    id: bigint
-    rank: bigint
+    id: number
+    rank: number
     displayName: string
     gridId: string
     officialPage: string
     wikiPage: string
-    paperCount: bigint
-    paperFamilyCount: bigint
-    citationCount: bigint
+    paperCount: number
+    paperFamilyCount: number
+    citationCount: number
     iso3166Code: string
     latitude: number|null
     longitude: number|null
@@ -32,15 +32,15 @@ class AffiliationRow {
 
     constructor(line: String) {
         let splitline = line.split("\t")
-        this.id = BigInt(splitline[0])
-        this.rank = BigInt(splitline[1])
+        this.id = Number(splitline[0])
+        this.rank = Number(splitline[1])
         this.displayName = splitline[2]
         this.gridId = splitline[3]
         this.officialPage = splitline[4]
         this.wikiPage = splitline[5]
-        this.paperCount = BigInt(splitline[6])
-        this.paperFamilyCount = BigInt(splitline[7])
-        this.citationCount = BigInt(splitline[8])
+        this.paperCount = Number(splitline[6])
+        this.paperFamilyCount = Number(splitline[7])
+        this.citationCount = Number(splitline[8])
         this.iso3166Code = splitline[9]
         this.latitude = splitline[10].length == 0 ? null : Number(splitline[10])
         this.longitude = splitline[11].length == 0 ? null : Number(splitline[11])
@@ -49,26 +49,26 @@ class AffiliationRow {
 }
 
 class AuthorRow {
-    authorId: bigint
-    rank: bigint
+    authorId: number
+    rank: number
     normalizedName: string
     displayName: string
-    lastKnownAffiliationId: bigint|null
-    paperCount: bigint
-    paperFamilyCount: bigint
-    citationCount: bigint
+    lastKnownAffiliationId: number|null
+    paperCount: number
+    paperFamilyCount: number
+    citationCount: number
     createDate: Date
 
     constructor(line: string) {
         let linesplit = line.split('\t')
-        this.authorId = BigInt(linesplit[0])
-        this.rank = BigInt(linesplit[1])
+        this.authorId = Number(linesplit[0])
+        this.rank = Number(linesplit[1])
         this.normalizedName = linesplit[2]
         this.displayName = linesplit[3]
-        this.lastKnownAffiliationId = linesplit[4].length == 0 ? null : BigInt(linesplit[3])
-        this.paperCount = BigInt(linesplit[5])
-        this.paperFamilyCount = BigInt(linesplit[6])
-        this.citationCount = BigInt(linesplit[7])
+        this.lastKnownAffiliationId = linesplit[4].length == 0 ? null : Number(linesplit[4])
+        this.paperCount = Number(linesplit[5])
+        this.paperFamilyCount = Number(linesplit[6])
+        this.citationCount = Number(linesplit[7])
         this.createDate = new Date(linesplit[8])
     }
 }
@@ -275,7 +275,7 @@ export module indexing {
         async findAuthorRowsNonNormalized(name: string) {
             let normname = name.toLocaleLowerCase().normalize("NFKD").split(" ")
             // let normname = name.replace
-            return this.findNameRows(normname, this.authorNameIndex, this.authorIndex, BigInt, 
+            return this.findNameRows(normname, this.authorNameIndex, this.authorIndex, BigInt,
                 (s:string) => new AuthorRow(s))
         }
 
@@ -374,8 +374,8 @@ function findRowInFile<V>(authorlines: string[], index: V): string {
     return result
 }
 
-const datafetcher:df.df.DataFetcher = new df.df.ArweaveDataFetcher()
-// const datafetcher:df.df.DataFetcher = new df.df.TestDataFetcher()
+// const datafetcher:df.df.DataFetcher = new df.df.ArweaveDataFetcher()
+const datafetcher:df.df.DataFetcher = new df.df.TestDataFetcher()
 const indexer = new indexing.IndexHandler(datafetcher)
 
 async function main() {
