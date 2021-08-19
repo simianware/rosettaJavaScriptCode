@@ -18,7 +18,7 @@ export module df {
     export interface DataFetcher {
         getDataString(hash:string): Promise<string>
 
-        getIndexFile(fetchType: FetchRequest, otherKeys?: BigInt)
+        getIndexFile(fetchType: FetchRequest, otherKeys?: bigint)
 
         getNameIndexFile(): Promise<string>
 
@@ -27,6 +27,8 @@ export module df {
         getAuthorPaperIndexFile(): Promise<string>
 
         getPaperIndexFile(): Promise<string>
+
+        appendToFile(id, val, filepath)
     }
 
     export class TestDataFetcher implements DataFetcher {
@@ -77,6 +79,12 @@ export module df {
             return this.getDataString(
                 path.join('E:', 'indexs', 'paperchunkindex.txt'))
         }
+
+        appendToFile(id, val, filepath): void {
+            fs.writeFileSync(path.join('E:', 'Downloads', filepath), id + '\t' + val, {
+                flag: 'a'
+            })
+        }
     }    
 
     export class ArweaveDataFetcher implements DataFetcher {
@@ -92,6 +100,9 @@ export module df {
                 logging: false,     // Enable network request logging
             });
             this.textencoder = new TextDecoder
+        }
+        appendToFile(id: any, val: any, filepath: any) {
+            throw new Error('Method not implemented.');
         }
 
         getAuthorPaperIndexFile(): Promise<string> {

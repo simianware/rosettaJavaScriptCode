@@ -10,6 +10,8 @@ import { df } from "./DataFetcher"
 import { indexing } from "./Indexing"
 import { encryption } from './encryption'
 
+import sha256 from 'crypto-js/sha256'
+
 let serverkeys = nacl.box.keyPair()
 
 // const datafetcher:df.df.DataFetcher = new df.df.ArweaveDataFetcher()
@@ -37,6 +39,15 @@ app.get('/api/getpublickey/', (req, res) => {
     res.send(
         encryption.U8IntArrayToArray(serverkeys.publicKey)
         )
+})
+
+app.post('/api/sendemail/:emailaddress/:id/:publickey', (req, res) => {
+    let publickey:Uint8Array = encryption.constructUint8ArrayFrom(req.params.publickey)
+    let emailmessage: encryption.Message = encryption.constructMessageFromString(req.params.email)
+    let emailstring = encryption.decryptText(emailmessage, publickey, serverkeys.secretKey)
+    let idmessage: encryption.Message = encryption.constructMessageFromString(req.params.id)
+    let id = Number(encryption.decryptText(idmessage, publickey, serverkeys.secretKey))
+    datafetcher.appendToFile(id, sha256(emailstring), 'emailshashed.txt')
 })
 
 app.listen(port, () => {
