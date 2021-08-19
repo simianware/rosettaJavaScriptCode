@@ -2,28 +2,15 @@ const express = require('express')
 const app = express()
 const port = 3000
 const openpgp = require('openpgp')
+const nacl = require('tweetnacl')
+
 
 import { df } from "./DataFetcher"
 // import * as df from './DataFetcher'
 import { indexing } from "./Indexing"
+import { encryption } from './encryption'
 
-let privateKeyg: Uint8Array
-let publicKeyg: Uint8Array
-
-(async () => {
-    const { privateKey, publicKey } = await openpgp.generateKey({
-        type: 'rsa', // Type of the key
-        rsaBits: 4096, // RSA key size (defaults to 4096 bits)
-        userIDs: [{ name: 'Jon Smith', email: 'jon@example.com' }], // you can pass multiple user IDs
-        passphrase: 'super long and hard to guess secret',
-        format: 'binary' // protects the private key
-    });
-    privateKeyg = privateKey
-    publicKeyg = publicKey
-    console.log(privateKeyg);     // '-----BEGIN PGP PRIVATE KEY BLOCK ... '
-    console.log(publicKeyg);      // '-----BEGIN PGP PUBLIC KEY BLOCK ... '
-})();
-
+let serverkeys = nacl.box.keyPair()
 
 // const datafetcher:df.df.DataFetcher = new df.df.ArweaveDataFetcher()
 const datafetcher:df.DataFetcher = new df.TestDataFetcher()
@@ -32,21 +19,24 @@ indexer.initialize()
 
 // function 
 
-app.get('/api/getauthors/:namestring/:publickey', async (req, res) => {
-    let namestring:string = req.params.namestring
-    let privatekey:Uint8Array = req.params.publickey
+app.get('/api/getauthors/:message/:publickey', async (req, res) => {
+    let publickey:Uint8Array = encryption.constructUint8ArrayFrom(req.params.publickey)
+    let message: encryption.Message = encryption.constructMessageFromString(req.params.message)
+    let namestring = encryption.decryptText(message, publickey, serverkeys.secretKey)
     console.log(namestring)
     let result
-    await indexer.findAuthorRowsNonNormalized(namestring).then(data => {
+    await indexer.findAuthorRowsNonNormalized(namestring, 100).then(data => {
         result = data
     })
     console.log(result)
-    const encrypt = 
-    res.send(result)
+    const encryptedMessage = encryption.encryptText(JSON.stringify(result), publickey, serverkeys.secretKey)
+    res.send(encryptedMessage.asString())
 })
 
 app.get('/api/getpublickey/', (req, res) => {
-    res.send(publicKeyg)
+    res.send(
+        encryption.U8IntArrayToArray(serverkeys.publicKey)
+        )
 })
 
 app.listen(port, () => {

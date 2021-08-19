@@ -11,13 +11,14 @@ export module df {
         AUTHORPAPERINDEX, // INDEX FROM AUTHOR ID TO ALL PAPERS PUBLISHED BY THAT AUTHOR
         INSTITUTIONNAMEINDEX, // INDEX FROM INSTITUTION NAME TO INSTITUTION ID
         INSTITUTIONINDEX, // INDEX FROM 
-        INSTITUTIONAUTHORNAMEINDEX // 
+        INSTITUTIONAUTHORNAMEINDEX, //
+        PRBPAPERINDEX 
     }
 
     export interface DataFetcher {
         getDataString(hash:string): Promise<string>
 
-        getIndexFile(fetchType: FetchRequest, otherKeys: BigInt)
+        getIndexFile(fetchType: FetchRequest, otherKeys?: BigInt)
 
         getNameIndexFile(): Promise<string>
 
@@ -50,7 +51,10 @@ export module df {
                         path.join('E:', 'indexs', 'paperchunkindex.txt'))
                 case FetchRequest.AUTHORPAPERINDEX:
                     return this.getDataString(
-                        path.join('E:', 'indexs', 'authorpaperchunkindex.txt'))
+                        path.join('E:', 'indexs', 'authorpaperschunkindex.txt'))
+                case FetchRequest.PRBPAPERINDEX:
+                    return this.getDataString(
+                        path.join('E:', 'indexs', 'prbchunk', 'prbchunkindex.txt'))
             }
         }
     

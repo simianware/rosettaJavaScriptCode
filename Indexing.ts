@@ -1,4 +1,5 @@
 import { assert } from 'console'
+import { exit } from 'process'
 import * as df from './DataFetcher'
 
 enum Comparison {
@@ -58,6 +59,8 @@ class AuthorRow {
     paperFamilyCount: number
     citationCount: number
     createDate: Date
+    papers: PaperRow[]
+    prbScore: number
 
     constructor(line: string) {
         let linesplit = line.split('\t')
@@ -99,6 +102,7 @@ class PaperRow {
     familyId: number|null
     familyRank: number|null
     createdDate: Date
+    prbScore: number
 
     constructor(line: string) {
         let linesplit = line.split('\t')
@@ -251,20 +255,28 @@ export module indexing {
     export class IndexHandler {
         datafetcher: df.df.DataFetcher
         authorNameIndex: IndexSet<string, string>
-        authorIndex: IndexSet<bigint, string>
+        authorIndex: IndexSet<number, string>
         affiliationNameIndex: IndexSet<string, string>
-        affiliationIndex: IndexSet<bigint, string>
-        authorPaperIndex: IndexSet<bigint, string>
-        paperIndex: IndexSet<bigint, string>
+        affiliationIndex: IndexSet<number, string>
+        authorPaperIndex: IndexSet<number, string>
+        paperIndex: IndexSet<number, string>
+        prbIndex: IndexSet<number, string>
 
         constructor(datafetcher: df.df.DataFetcher) {
             this.datafetcher = datafetcher
         }
 
         async initialize() {
-            await Promise.all([datafetcher.getNameIndexFile(), datafetcher.getAuthorIndexFile()]).then(values => {
+            await Promise.all([datafetcher.getNameIndexFile(),
+                 datafetcher.getAuthorIndexFile(),
+                 datafetcher.getIndexFile(df.df.FetchRequest.AUTHORPAPERINDEX),
+                 datafetcher.getIndexFile(df.df.FetchRequest.PAPERINDEX),
+                 datafetcher.getIndexFile(df.df.FetchRequest.PRBPAPERINDEX)]).then(values => {
                 this.authorNameIndex = convertIndexTuples(convertStringIndexs(values[0]))
                 this.authorIndex = convertIndexTuples(convertBigintIndexs(values[1]))
+                this.authorPaperIndex = convertIndexTuples(convertBigintIndexs(values[2]))
+                this.paperIndex = convertIndexTuples(convertBigintIndexs(values[3]))
+                this.prbIndex = convertIndexTuples(convertBigintIndexs(values[4]))
             })
         }
 
@@ -289,6 +301,7 @@ export module indexing {
                         }
                     }
                 })
+                return true
             })
             return new Promise((resolve, reject) => {
                 if (result == null) {  
@@ -302,68 +315,165 @@ export module indexing {
         async findIndexMapping<K, V>(keys: K[],
             indexSet:IndexSet<K, string>, stringToIndex: (s: string) => V): Promise<Map<K, V[]>> {
             let result:Map<K, V[]> = new Map()
-            let indexfiles = indexSet.getIndexForHashMap(keys)
+            let indexfiles: Map<string, K[]> = indexSet.getIndexForHashMap(keys)
+            console.log('indexfiles', indexfiles)
             await this.processIndexDict(indexfiles, (indexfile, keys) => {
-                keys.forEach(key => {
-                    let indexs = findAuthorIndexsForName(indexfile, String(key), stringToIndex)
-                    result.set(key, indexs)
+                console.log('keys', keys)
+                for (let i = 0; i < indexfile.length; i++) {
+                    indexfile[i] = indexfile[i].split(' ').join('\t')
+                }
+                console.log(indexfile[0])
+                keys.forEach(k => {
+                    let indexs = findAuthorIndexsForName(indexfile, String(k), stringToIndex)
+                    console.log('key', k, 'indexs', indexs)
+                    result.set(k, indexs)
                 })
+                return true
             })
             return result
         }
 
+        // async findIndexRows<V, R>(indexs: V[], rowIndexSet: IndexSet<V,string>, stringToRow: (s: string) => R,
+        // maxResults:Number = 1000): Promise<R[]> {
+        //     let rows:R[] = []
+        //     let dict = rowIndexSet.getIndexForHashMap(indexs)
+        //     await this.processIndexDict(dict, (authorlines, bigintforhash) => {
+        //         for (let i = 0; i < bigintforhash.length; i++) {
+        //             let authorindex = bigintforhash[i]
+        //             const row = findRowInFile(authorlines, authorindex)
+        //             if (row != null) {
+        //                 rows.push(stringToRow(row))
+        //             }
+        //             if (rows.length >= maxResults) {
+        //                 return false
+        //             }
+        //         }
+        //         return true
+        //     })
+        //     return new Promise((resolve, reject) => resolve(rows)) 
+        // }
+
         async findIndexRows<V, R>(indexs: V[], rowIndexSet: IndexSet<V,string>, stringToRow: (s: string) => R,
-        maxResults:Number = 1000): Promise<R[]> {
-            let rows:R[] = []
+        maxResults:Number = 1000): Promise<Map<V, R>> {
+            let rows:Map<V, R> = new Map()
             let dict = rowIndexSet.getIndexForHashMap(indexs)
             await this.processIndexDict(dict, (authorlines, bigintforhash) => {
                 for (let i = 0; i < bigintforhash.length; i++) {
                     let authorindex = bigintforhash[i]
                     const row = findRowInFile(authorlines, authorindex)
                     if (row != null) {
-                        rows.push(stringToRow(row))
+                        rows.set(authorindex, stringToRow(row))
                     }
-                    if (rows.length >= maxResults) {
-                        break
+                    if (rows.size >= maxResults) {
+                        return false
                     }
                 }
+                return true
             })
             return new Promise((resolve, reject) => resolve(rows)) 
         }
 
         async findNameRows<K, V, R>(keys: K[],
             nameIndexSet:IndexSet<K, string>, rowIndexSet: IndexSet<V, string>, stringToIndex: (s: string) => V,
-            stringToRow: (s: string) => R, maxResults: number = 1000): Promise<R[]> {
+            stringToRow: (s: string) => R, maxResults: number = 1000): Promise<Map<V, R>> {
             let authorindexs:V[]
             await this.findPossibleIndexsForKeys(keys, nameIndexSet, stringToIndex).then(data => {
                 authorindexs = data
             })
+            console.log('authorindex', authorindexs.length)
             return this.findIndexRows(authorindexs, rowIndexSet, stringToRow, maxResults)
         }
 
-        async findAuthorRowsNonNormalized(name: string) {
-            let normname = name.toLocaleLowerCase().normalize("NFKD").split(" ")
-            // let normname = name.replace
-            return this.findNameRows(normname, this.authorNameIndex, this.authorIndex, BigInt,
-                (s:string) => new AuthorRow(s))
+        async findPapersOf(authorIndexes: number[]): Promise<Map<number, PaperRow[]>> {
+            let map: Map<number, PaperRow[]> = new Map()
+            let authorToPapersMap: Map<number, number[]> = await this.findIndexMapping(authorIndexes, this.authorPaperIndex, Number)
+            console.log('author papers', authorToPapersMap)
+            let neededPapers: Set<number> = new Set()
+            authorToPapersMap.forEach((paperIds, authorId) => {
+                paperIds.forEach(paperId => neededPapers.add(paperId))
+            })
+            let paperMap: Map<number, PaperRow> = await this.findIndexRows(Array.from(neededPapers), this.paperIndex, (s: string) => new PaperRow(s), 100000)
+            let prbscores: Map<number, number> = await this.findIndexRows(Array.from(neededPapers), this.prbIndex, (s: string) => {
+                return Number(s.split('\t')[1])
+            })
+            console.log(prbscores)
+            console.log(neededPapers)
+            neededPapers.forEach(paperId => {
+                if (paperMap.has(paperId) && prbscores.has(paperId)) {
+                    paperMap.get(paperId).prbScore = prbscores.get(paperId)
+                }
+            })
+            authorToPapersMap.forEach((paperIds, authorId) => {
+                let papers = []
+                paperIds.forEach(paperId => {
+                    if (paperMap.has(paperId)) {
+                        papers.push(paperMap.get(paperId))
+                    }
+                })
+                map.set(authorId, papers)
+            })
+            return map
         }
 
-        async processIndexDict<T>(dict: Map<string, T>, func: (s: string[], t: T) => void) {
+        async findAuthorRowsNonNormalized(name: string, maxResults: number = 1000): Promise<AuthorRow[]> {
+            let normname = name.toLocaleLowerCase().normalize("NFKD").split(" ")
+            // let normname = name.replace
+            let authorRows = await this.findNameRows(normname, this.authorNameIndex, this.authorIndex, Number, (s:string) => new AuthorRow(s))
+            let authorIndexs = []
+            authorRows.forEach(author => authorIndexs.push(author.authorId))
+            let authorPapersMap = await this.findPapersOf(authorIndexs)
+            authorRows.forEach(author => author.papers = authorPapersMap.get(author.authorId))
+            let authorRowsArr: AuthorRow[] = []
+            authorRows.forEach((authorRow, index) => {
+                authorRowsArr.push(authorRow)
+                authorRow.prbScore = 0.0
+                authorRow.papers.forEach(paper => {
+                    if (typeof paper.prbScore !== 'undefined') {
+                        authorRow.prbScore += paper.prbScore - 0.15
+                    }
+                })
+            })
+            return authorRowsArr
+        }
+
+        async processIndexDict<T>(dict: Map<string, T>, func: (s: string[], t: T) => boolean, batchsize: number = 50) {
             let iterator = dict.entries()
             let itresult = iterator.next()
             let valueForIndexList:Array<T> = []
             let promises: Promise<string>[] = []
+            let stop = false
             while (!itresult.done) {
                 let [hash, namesforindex] = itresult.value
                 valueForIndexList.push(namesforindex)
                 promises.push(this.datafetcher.getDataString(hash))
+                if (promises.length >= batchsize) {
+                    await Promise.all(promises).then(values => { 
+                        for (let i = 0; i < values.length; i++) {
+                            const valueforIndex = valueForIndexList[i]
+                            const nameindex = values[i].split("\n")
+                            stop = stop || !func(nameindex, valueforIndex)
+                            if (stop) {
+                                break
+                            }
+                        }
+                    })
+                    promises = []
+                    valueForIndexList = []
+                    if (stop) {
+                        break
+                    }
+                }
                 itresult = iterator.next()
             }
             await Promise.all(promises).then(values => { 
                 for (let i = 0; i < values.length; i++) {
                     const valueforIndex = valueForIndexList[i]
                     const nameindex = values[i].split("\n")
-                    func(nameindex, valueforIndex)
+                    console.log(valueforIndex)
+                    stop = stop || !func(nameindex, valueforIndex)
+                    if (stop) {
+                        break
+                    }
                 }
             })
         }
@@ -393,15 +503,15 @@ function convertStringIndexs(indexfile:string): Array<[string, string, string]> 
     return result
 }
 
-function convertBigintIndexs(indexfile:string): Array<[bigint, bigint, string]> {
-    let result:Array<[bigint,bigint,string]> = []
+function convertBigintIndexs(indexfile:string): Array<[number, number, string]> {
+    let result:Array<[number,number,string]> = []
     let lines:string[] = indexfile.split("\n")
     for (let i = 0; i < lines.length; i++) {
         let splitline:string[] = lines[i].trim().split("\t")
         if (splitline.length < 3) {
             continue
         }
-        result.push([BigInt(splitline[0]), BigInt(splitline[1]), splitline[2]])
+        result.push([Number(splitline[0]), Number(splitline[1]), splitline[2]])
     }
     return result
 }
@@ -434,7 +544,7 @@ function findAuthorInFile(authorlines: string[], index: bigint): string {
 
 function findRowInFile<V>(authorlines: string[], index: V): string {
     let stringindex = index + "\t"
-    let result = ""
+    let result = null
     authorlines.forEach(line => {
         if (line.startsWith(stringindex)) {
             result = line
@@ -443,8 +553,8 @@ function findRowInFile<V>(authorlines: string[], index: V): string {
     return result
 }
 
-const datafetcher:df.df.DataFetcher = new df.df.ArweaveDataFetcher()
-// const datafetcher:df.df.DataFetcher = new df.df.TestDataFetcher()
+// const datafetcher:df.df.DataFetcher = new df.df.ArweaveDataFetcher()
+const datafetcher:df.df.DataFetcher = new df.df.TestDataFetcher()
 const indexer = new indexing.IndexHandler(datafetcher)
 
 async function main() {
