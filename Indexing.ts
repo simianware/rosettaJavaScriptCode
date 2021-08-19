@@ -73,6 +73,71 @@ class AuthorRow {
     }
 }
 
+class PaperRow {
+    paperId: number
+    rank: number
+    doi: string
+    docType: string
+    paperTitle: string
+    originalTitle: string
+    bookTitle: string
+    year: number|null
+    date: Date|null
+    onlineDate: Date|null
+    publisher: string
+    journalId: number|null
+    conferenceSeriesId: number|null
+    conferenceInstanceId: number|null
+    volume: string
+    issue: string
+    firstPage: string
+    lastPage: string
+    referenceCount: number
+    citationCount: number
+    estimatedCitation: number
+    originalVenue: string
+    familyId: number|null
+    familyRank: number|null
+    createdDate: Date
+
+    constructor(line: string) {
+        let linesplit = line.split('\t')
+        this.paperId = Number(linesplit[0])
+        this.rank = Number(linesplit[1])
+        this.doi = linesplit[2]
+        this.docType = linesplit[3]
+        this.paperTitle = linesplit[4]
+        this.originalTitle = linesplit[5]
+        this.bookTitle = linesplit[6]
+        this.year = parseOrNull(linesplit[7], Number)
+        this.date = parseOrNull(linesplit[8], (s:string) => new Date(s))
+        this.onlineDate = parseOrNull(linesplit[9], (s:string) => new Date(s))
+        this.publisher = linesplit[10]
+        this.journalId = parseOrNull(linesplit[11], Number)
+        this.conferenceSeriesId = parseOrNull(linesplit[12], Number)
+        this.conferenceInstanceId = parseOrNull(linesplit[13], Number)
+        this.volume = linesplit[14]
+        this.issue = linesplit[15]
+        this.firstPage = linesplit[16]
+        this.lastPage = linesplit[17]
+        this.referenceCount = Number(linesplit[18])
+        this.citationCount = Number(linesplit[19])
+        this.estimatedCitation = Number(linesplit[20])
+        this.originalVenue = linesplit[21]
+        this.familyId = parseOrNull(linesplit[22], Number)
+        this.familyRank = parseOrNull(linesplit[23], Number)
+        this.createdDate = new Date(linesplit[24])
+    }
+}
+
+function parseOrNull<T>(s:string, func: (s:string)=>T):T|null {
+    try {
+        return func(s)
+    } catch {
+        return null
+    }
+}
+
 class ExactIndexer<K, V> implements Indexer<K, V> {
     exactIndex: K
     value: V
@@ -234,42 +299,46 @@ export module indexing {
             })
         }
 
-        async findNameRows<K, V, R>(keys: K[],
-            nameIndexSet:IndexSet<K, string>, rowIndexSet: IndexSet<V, string>, stringToIndex: (s: string) => V,
-            stringToRow: (s: string) => R): Promise<R[]> {
-            let authorindexs:V[]
-            await this.findPossibleIndexsForKeys(keys, nameIndexSet, stringToIndex).then(data => {
-                authorindexs = data
+        async findIndexMapping<K, V>(keys: K[],
+            indexSet:IndexSet<K, string>, stringToIndex: (s: string) => V): Promise<Map<K, V[]>> {
+            let result:Map<K, V[]> = new Map()
+            let indexfiles = indexSet.getIndexForHashMap(keys)
+            await this.processIndexDict(indexfiles, (indexfile, keys) => {
+                keys.forEach(key => {
+                    let indexs = findAuthorIndexsForName(indexfile, String(key), stringToIndex)
+                    result.set(key, indexs)
+                })
             })
+            return result
+        }
+
+        async findIndexRows<V, R>(indexs: V[], rowIndexSet: IndexSet<V,string>, stringToRow: (s: string) => R,
+        maxResults:Number = 1000): Promise<R[]> {
             let rows:R[] = []
-            let dict = rowIndexSet.getIndexForHashMap(authorindexs)
+            let dict = rowIndexSet.getIndexForHashMap(indexs)
             await this.processIndexDict(dict, (authorlines, bigintforhash) => {
-                bigintforhash.forEach(authorindex =>  {
+                for (let i = 0; i < bigintforhash.length; i++) {
+                    let authorindex = bigintforhash[i]
                     const row = findRowInFile(authorlines, authorindex)
                     if (row != null) {
                         rows.push(stringToRow(row))
                     }
-                })
+                    if (rows.length >= maxResults) {
+                        break
+                    }
+                }
             })
             return new Promise((resolve, reject) => resolve(rows)) 
         }
 
-        async findAuthorRows(names: string[]): Promise<AuthorRow[]> {
-            let authorindexs:bigint[]
-            await this.findPossibleIndexsForKeys(names, this.authorNameIndex, BigInt).then(data => {
+        async findNameRows<K, V, R>(keys: K[],
+            nameIndexSet:IndexSet<K, string>, rowIndexSet: IndexSet<V, string>, stringToIndex: (s: string) => V,
+            stringToRow: (s: string) => R, maxResults: number = 1000): Promise<R[]> {
+            let authorindexs:V[]
+            await this.findPossibleIndexsForKeys(keys, nameIndexSet, stringToIndex).then(data => {
                 authorindexs = data
             })
-            let rows:AuthorRow[] = []
-            let dict = this.authorIndex.getIndexForHashMap(authorindexs)
-            await this.processIndexDict(dict, (authorlines, bigintforhash) => {
-                bigintforhash.forEach(authorindex =>  {
-                    const row = findAuthorInFile(authorlines, authorindex)
-                    if (row != null) {
-                        rows.push(new AuthorRow(row))
-                    }
-                })
-            })
-            return new Promise((resolve, reject) => resolve(rows)) 
+            return this.findIndexRows(authorindexs, rowIndexSet, stringToRow, maxResults)
         }
 
         async findAuthorRowsNonNormalized(name: string) {
@@ -374,8 +443,8 @@ function findRowInFile<V>(authorlines: string[], index: V): string {
     return result
 }
 
-// const datafetcher:df.df.DataFetcher = new df.df.ArweaveDataFetcher()
-const datafetcher:df.df.DataFetcher = new df.df.TestDataFetcher()
+const datafetcher:df.df.DataFetcher = new df.df.ArweaveDataFetcher()
+// const datafetcher:df.df.DataFetcher = new df.df.TestDataFetcher()
 const indexer = new indexing.IndexHandler(datafetcher)
 
 async function main() {
