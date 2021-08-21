@@ -34,7 +34,7 @@ export module df {
     export class TestDataFetcher implements DataFetcher {
         async getDataString(hash: string): Promise<string> {
             let result: string
-            result = fs.readFileSync(hash, {encoding:'utf-8'})
+            await fs.readFile(hash, {encoding:'utf-8'}, (err, data) => result = data)
             return new Promise((resolve, reject) => {
                 resolve(result)
             })
