@@ -41,6 +41,22 @@ class Client{
     async requestAuthorsWithName(name: string) {
         let result
         console.log(name)
+        await axios.default.get(this.serverString + "api/getauthors/" + name + "/").then(data => {
+            console.log(data.data)
+            result = data.data
+        })
+        return result
+    }
+
+    async sendAuthorEmail(id: number, email: string) {
+        let result
+        await axios.default.post(this.serverString + "api/sendemail/" + email + "/" + id + "/")
+        return
+    }
+
+    async requestAuthorsWithNameEncrypted(name: string) {
+        let result
+        console.log(name)
         let message = encryption.encryptText(name, this.serverPublicKey, this.clientKeyPair.secretKey)
         await axios.default.get(this.serverString + "api/getauthors/" + message.asString() + "/" + this.clientPublicKeyString).then(data => {
             console.log(data.data)
@@ -50,115 +66,23 @@ class Client{
         })
         return result
     }
+
+    async sendAuthorEmailEncrypted(id: number, email: string) {
+        let result
+        let emailmessage = encryption.encryptText(email, this.serverPublicKey, this.clientKeyPair.secretKey)
+        let idmessage = encryption.encryptText(String(id), this.serverPublicKey, this.clientKeyPair.secretKey)
+        await axios.default.post(this.serverString + "api/sendemail/" + emailmessage.asString() + "/" + idmessage.asString() + "/" + this.clientPublicKeyString)
+        return
+    }
 }
 
 async function main() {
     let client = new Client()
-    await client.initialize()
-    let rows = await client.requestAuthorsWithName('peter a mccullough')
+    // await client.initialize()
+    let rows = await client.requestAuthorsWithName('simon ware')
+    // await client.sendAuthorEmail(2009723854, 'sware@gmail.com')
     console.log(rows)
     // console.log(rows[0].papers)
 }
 
 main()
-
-// async function sendEncryptedMessage() {
-//     axios.default.get(
-//         'http://localhost:3000/api/getauthors/' + 'simon ware' + '/' + String(publicKey),{
-//         params: {namestring: 'Simon Ware', publickey: "ioio"}
-//     }).then(data => {
-//         console.log(data)
-//     })
-//     // axios.default.request({
-//     //     url: '/api/getauthors/',
-//     //     proxy: {
-//     //         protocol: 'http',
-//     //         host: 'localhost',
-//     //         port: 3000
-//     //     },
-//     //     method: "GET",
-//     //     params: {namestring: 'Simon Ware', publickey: "ioio"}
-//     // }).then(data => {
-//     //     console.log(data)
-//     // })
-//     // https.get('http://localhost:3000/api/getauthors/',)
-//     // res => {
-//     //     // console.log(res)
-//     //     res.on('data', d => {
-//     //         console.log(d)
-//     //     })
-//     // })
-//     // response.end()
-//     // const response = await nnfetch('https://localhost:3000/api/getauthors/' + author + '/' + publicKey)
-//     // console.log(response)
-//     // const encrypted = await openpgp.encrypt({
-//     //     message: await openpgp.createMessage({ text: 'Hello, World!' }), // input as Message object
-//     //     encryptionKeys: publicKey,
-//     //     // signingKeys: privateKey // optional
-//     // });
-//     // console.log(encrypted); // '-----BEGIN PGP MESSAGE ... END PGP MESSAGE-----'
-
-//     // const message = await openpgp.readMessage({
-//     //     armoredMessage: encrypted // parse armored message
-//     // });
-//     // const { data: decrypted, signatures } = await openpgp.decrypt({
-//     //     message,
-//     //     // verificationKeys: publicKey, // optional
-//     //     decryptionKeys: privateKey
-//     // });
-//     // console.log(decrypted);
-// }
-
-// // sendEncryptedMessage();
-
-// // (async () => {
-// //     // put keys in backtick (``) to avoid errors caused by spaces or tabs
-// //     let publicKeyArmored
-// //     let privateKeyArmored
-
-// //     const passphrase = `yourPassphrase`; // what the private key is encrypted with
-
-// //     await (async () => {
-// //         const { privateKey, publicKey } = await openpgp.generateKey({
-// //             type: 'rsa', // Type of the key
-// //             rsaBits: 4096, // RSA key size (defaults to 4096 bits)
-// //             userIDs: [{ name: 'Jon Smith', email: 'jon@example.com' }], // you can pass multiple user IDs
-// //             passphrase: passphrase
-// //         });
-// //         privateKeyArmored = privateKey
-// //         publicKeyArmored = publicKey
-// //         console.log(privateKey);     // '-----BEGIN PGP PRIVATE KEY BLOCK ... '
-// //         console.log(publicKey);      // '-----BEGIN PGP PUBLIC KEY BLOCK ... '
-// //     })();
-
-// //     const publicKey = await openpgp.readKey({ armoredKey: publicKeyArmored });
-
-// //     const privateKey = await openpgp.decryptKey({
-// //         privateKey: await openpgp.readPrivateKey({ armoredKey: privateKeyArmored }),
-// //         passphrase
-// //     });
-
-// //     const encrypted = await openpgp.encrypt({
-// //         message: await openpgp.createMessage({ text: 'Hello, World!' }), // input as Message object
-// //         encryptionKeys: publicKey,
-// //         signingKeys: privateKey // optional
-// //     });
-// //     console.log(encrypted); // '-----BEGIN PGP MESSAGE ... END PGP MESSAGE-----'
-
-// //     const message = await openpgp.readMessage({
-// //         armoredMessage: encrypted // parse armored message
-// //     });
-// //     const { data: decrypted, signatures } = await openpgp.decrypt({
-// //         message,
-// //         verificationKeys: publicKey, // optional
-// //         decryptionKeys: privateKey
-// //     });
-// //     console.log(decrypted); // 'Hello, World!'
-// //     // check signature validity (signed messages only)
-// //     try {
-// //         await signatures[0].verified; // throws on invalid signature
-// //         console.log('Signature is valid');
-// //     } catch (e) {
-// //         throw new Error('Signature could not be verified: ' + e.message);
-// //     }
-// // })();

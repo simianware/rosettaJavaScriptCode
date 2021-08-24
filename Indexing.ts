@@ -316,16 +316,12 @@ export module indexing {
             indexSet:IndexSet<K, string>, stringToIndex: (s: string) => V): Promise<Map<K, V[]>> {
             let result:Map<K, V[]> = new Map()
             let indexfiles: Map<string, K[]> = indexSet.getIndexForHashMap(keys)
-            console.log('indexfiles', indexfiles)
             await this.processIndexDict(indexfiles, (indexfile, keys) => {
-                console.log('keys', keys)
                 for (let i = 0; i < indexfile.length; i++) {
                     indexfile[i] = indexfile[i].split(' ').join('\t')
                 }
-                console.log(indexfile[0])
                 keys.forEach(k => {
                     let indexs = findAuthorIndexsForName(indexfile, String(k), stringToIndex)
-                    console.log('key', k, 'indexs', indexs)
                     result.set(k, indexs)
                 })
                 return true
@@ -582,4 +578,4 @@ async function main() {
     // indexer.findAuthorRows(["steve", "reeves"]).then(data => console.log(data))
 }
 
-main()
+// main()

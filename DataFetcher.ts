@@ -81,7 +81,7 @@ export module df {
         }
 
         appendToFile(id, val, filepath): void {
-            fs.writeFileSync(path.join('E:', 'Downloads', filepath), id + '\t' + val, {
+            fs.writeFileSync(path.join('E:', 'Downloads', filepath), id + '\t' + val + "\n", {
                 flag: 'a'
             })
         }
