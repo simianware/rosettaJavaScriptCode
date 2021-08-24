@@ -329,28 +329,8 @@ export module indexing {
             return result
         }
 
-        // async findIndexRows<V, R>(indexs: V[], rowIndexSet: IndexSet<V,string>, stringToRow: (s: string) => R,
-        // maxResults:Number = 1000): Promise<R[]> {
-        //     let rows:R[] = []
-        //     let dict = rowIndexSet.getIndexForHashMap(indexs)
-        //     await this.processIndexDict(dict, (authorlines, bigintforhash) => {
-        //         for (let i = 0; i < bigintforhash.length; i++) {
-        //             let authorindex = bigintforhash[i]
-        //             const row = findRowInFile(authorlines, authorindex)
-        //             if (row != null) {
-        //                 rows.push(stringToRow(row))
-        //             }
-        //             if (rows.length >= maxResults) {
-        //                 return false
-        //             }
-        //         }
-        //         return true
-        //     })
-        //     return new Promise((resolve, reject) => resolve(rows)) 
-        // }
-
         async findIndexRows<V, R>(indexs: V[], rowIndexSet: IndexSet<V,string>, stringToRow: (s: string) => R,
-        maxResults:Number = 1000): Promise<Map<V, R>> {
+            maxResults:Number = 1000): Promise<Map<V, R>> {
             let rows:Map<V, R> = new Map()
             let dict = rowIndexSet.getIndexForHashMap(indexs)
             await this.processIndexDict(dict, (authorlines, bigintforhash) => {
