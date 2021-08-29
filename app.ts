@@ -12,10 +12,12 @@ import { encryption } from './encryption'
 
 import sha256 = require("crypto-js/sha256");
 
+import * as path from 'path'
+
 let serverkeys = nacl.box.keyPair()
 
 // const datafetcher:df.df.DataFetcher = new df.df.ArweaveDataFetcher()
-const datafetcher:df.DataFetcher = new df.TestDataFetcher()
+const datafetcher:df.DataFetcher = new df.OnSiteDataFetcher(path.join("E:", 'indexs'), path.join("E:", 'Downloads'))
 const indexer = new indexing.IndexHandler(datafetcher)
 indexer.initialize()
 

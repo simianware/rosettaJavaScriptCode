@@ -1,6 +1,7 @@
 import { assert } from 'console'
 import { exit } from 'process'
 import * as df from './DataFetcher'
+import * as path from 'path'
 
 enum Comparison {
     LESSTHAN,
@@ -530,7 +531,7 @@ function findRowInFile<V>(authorlines: string[], index: V): string {
 }
 
 // const datafetcher:df.df.DataFetcher = new df.df.ArweaveDataFetcher()
-const datafetcher:df.df.DataFetcher = new df.df.TestDataFetcher()
+const datafetcher:df.df.DataFetcher = new df.df.OnSiteDataFetcher(path.join("E:", 'indexs'), path.join("E:", 'Downloads'))
 const indexer = new indexing.IndexHandler(datafetcher)
 
 async function main() {

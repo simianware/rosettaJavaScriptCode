@@ -31,10 +31,18 @@ export module df {
         appendToFile(id, val, filepath)
     }
 
-    export class TestDataFetcher implements DataFetcher {
+    export class OnSiteDataFetcher implements DataFetcher {
+        indexdirectory:string
+        outputdirectory:string
+
+        constructor(indexdirectory:string, outputdirectory:string) {
+            this.indexdirectory = indexdirectory
+            this.outputdirectory = outputdirectory
+        }
+
         async getDataString(hash: string): Promise<string> {
             let result: string
-            await fs.readFile(hash, {encoding:'utf-8'}, (err, data) => result = data)
+            result = fs.readFileSync(hash, {encoding:'utf-8'})
             return new Promise((resolve, reject) => {
                 resolve(result)
             })
@@ -44,44 +52,44 @@ export module df {
             switch (fetchType) {
                 case FetchRequest.AUTHORNAMEINDEX:
                     return this.getDataString(
-                        path.join('E:', 'indexs', 'indexofindexs.txt'))
+                        path.join(this.indexdirectory, 'indexofindexs.txt'))
                 case FetchRequest.AUTHORINDEX:
                     return this.getDataString(
-                        path.join('E:', 'indexs', 'authorchunkindex.txt'))
+                        path.join(this.indexdirectory, 'authorchunkindex.txt'))
                 case FetchRequest.PAPERINDEX:
                     return this.getDataString(
-                        path.join('E:', 'indexs', 'paperchunkindex.txt'))
+                        path.join(this.indexdirectory, 'paperchunkindex.txt'))
                 case FetchRequest.AUTHORPAPERINDEX:
                     return this.getDataString(
-                        path.join('E:', 'indexs', 'authorpaperschunkindex.txt'))
+                        path.join(this.indexdirectory, 'authorpaperschunkindex.txt'))
                 case FetchRequest.PRBPAPERINDEX:
                     return this.getDataString(
-                        path.join('E:', 'indexs', 'prbchunk', 'prbchunkindex.txt'))
+                        path.join(this.indexdirectory, 'prbchunk', 'prbchunkindex.txt'))
             }
         }
     
         getNameIndexFile(): Promise<string> {
             return this.getDataString(
-                path.join('E:', 'indexs', 'indexofindexs.txt'))
+                path.join(this.indexdirectory, 'indexofindexs.txt'))
         }
     
         getAuthorIndexFile(): Promise<string> {
             return this.getDataString(
-                path.join('E:', 'indexs', 'authorchunkindex.txt'))
+                path.join(this.indexdirectory, 'authorchunkindex.txt'))
         }
 
         getAuthorPaperIndexFile(): Promise<string> {
             return this.getDataString(
-                path.join('E:', 'indexs', 'authorpaperchunkindex.txt'))
+                path.join(this.indexdirectory, 'authorpaperchunkindex.txt'))
         }
     
         getPaperIndexFile(): Promise<string> {
             return this.getDataString(
-                path.join('E:', 'indexs', 'paperchunkindex.txt'))
+                path.join(this.indexdirectory, 'paperchunkindex.txt'))
         }
 
         appendToFile(id, val, filepath): void {
-            fs.writeFileSync(path.join('E:', 'Downloads', filepath), id + '\t' + val + "\n", {
+            fs.writeFileSync(path.join(this.outputdirectory, filepath), id + '\t' + val + "\n", {
                 flag: 'a'
             })
         }
