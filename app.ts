@@ -1,6 +1,6 @@
 const express = require('express')
 const app = express()
-const port = 3000
+const port = 80
 const nacl = require('tweetnacl')
 
 
@@ -16,7 +16,7 @@ import * as path from 'path'
 let serverkeys = nacl.box.keyPair()
 
 // const datafetcher:df.df.DataFetcher = new df.df.ArweaveDataFetcher()
-const datafetcher:df.DataFetcher = new df.OnSiteDataFetcher(path.join("E:", 'indexs'), path.join("E:", 'Downloads'))
+const datafetcher:df.DataFetcher = new df.OnSiteDataFetcher(path.join("G:", 'indexs'), path.join("G:", 'Downloads'))
 const indexer = new indexing.IndexHandler(datafetcher)
 indexer.initialize()
 
