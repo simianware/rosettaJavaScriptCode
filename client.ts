@@ -1,7 +1,3 @@
-const openpgp = require('openpgp')
-const nnfetch = require("node-fetch");
-const jquery = require("jquery")
-const https = require('http')
 import axios = require('axios');
 const nacl = require('tweetnacl');
 
@@ -20,7 +16,7 @@ class Client{
     clientKeyPair
     clientPublicKeyString: string
     serverPublicKey: Uint8Array
-    serverString:string = 'http://localhost:3000/'
+    serverString:string = 'http://rosetta.eastus.cloudapp.azure.com/'
 
     constructor() {
         this.clientKeyPair = nacl.box.keyPair()
