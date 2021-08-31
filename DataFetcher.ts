@@ -20,13 +20,13 @@ export module df {
 
         getIndexFile(fetchType: FetchRequest, otherKeys?: bigint)
 
-        getNameIndexFile(): Promise<string>
+    // getNameIndexFile(): Promise<string>
 
-        getAuthorIndexFile(): Promise<string>
+    // getAuthorIndexFile(): Promise<string>
 
-        getAuthorPaperIndexFile(): Promise<string>
+    // getAuthorPaperIndexFile(): Promise<string>
 
-        getPaperIndexFile(): Promise<string>
+    // getPaperIndexFile(): Promise<string>
 
         appendToFile(id, val, filepath)
     }
@@ -52,16 +52,16 @@ export module df {
             switch (fetchType) {
                 case FetchRequest.AUTHORNAMEINDEX:
                     return this.getDataString(
-                        path.join('indexofindexs.txt'))
+                        path.join('AuthorName', 'AuthorNameindex.txt'))
                 case FetchRequest.AUTHORINDEX:
                     return this.getDataString(
-                        path.join('authorchunkindex.txt'))
+                        path.join('authorchunk', 'authorchunkindex.txt'))
                 case FetchRequest.PAPERINDEX:
                     return this.getDataString(
-                        path.join('paperchunkindex.txt'))
+                        path.join('paperchunk', 'paperchunkindex.txt'))
                 case FetchRequest.AUTHORPAPERINDEX:
                     return this.getDataString(
-                        path.join('authorpaperschunkindex.txt'))
+                        path.join('authorpaperchunk', 'authorpaperchunkindex.txt'))
                 case FetchRequest.PRBPAPERINDEX:
                     return this.getDataString(
                         path.join('prbchunk', 'prbchunkindex.txt'))

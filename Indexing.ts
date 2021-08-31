@@ -268,8 +268,9 @@ export module indexing {
         }
 
         async initialize() {
-            await Promise.all([datafetcher.getNameIndexFile(),
-                 datafetcher.getAuthorIndexFile(),
+            await Promise.all([                
+                 datafetcher.getIndexFile(df.df.FetchRequest.AUTHORNAMEINDEX),
+                 datafetcher.getIndexFile(df.df.FetchRequest.AUTHORINDEX),
                  datafetcher.getIndexFile(df.df.FetchRequest.AUTHORPAPERINDEX),
                  datafetcher.getIndexFile(df.df.FetchRequest.PAPERINDEX),
                  datafetcher.getIndexFile(df.df.FetchRequest.PRBPAPERINDEX)]).then(values => {
