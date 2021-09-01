@@ -181,6 +181,9 @@ class RangeIndexer<K,V> implements Indexer<K,V> {
         this.mostIndex = mostIndex
         this.value = value
         assert(this.leastIndex <= this.mostIndex)
+        if (this.leastIndex > this.mostIndex) {
+            console.log(this)
+        }
     }
 
     compare(index: K): Comparison {
@@ -272,13 +275,12 @@ export module indexing {
                  this.datafetcher.getIndexFile(df.df.FetchRequest.AUTHORNAMEINDEX),
                  this.datafetcher.getIndexFile(df.df.FetchRequest.AUTHORINDEX),
                  this.datafetcher.getIndexFile(df.df.FetchRequest.AUTHORPAPERINDEX),
-                 this.datafetcher.getIndexFile(df.df.FetchRequest.PAPERINDEX),
-                 this.datafetcher.getIndexFile(df.df.FetchRequest.PRBPAPERINDEX)]).then(values => {
+                 this.datafetcher.getIndexFile(df.df.FetchRequest.PAPERINDEX)]).then(values => {
                 this.authorNameIndex = convertIndexTuples(convertStringIndexs(values[0]))
                 this.authorIndex = convertIndexTuples(convertBigintIndexs(values[1]))
-                this.authorPaperIndex = convertIndexTuples(convertBigintIndexs(values[2]))
-                this.paperIndex = convertIndexTuples(convertBigintIndexs(values[3]))
-                this.prbIndex = convertIndexTuples(convertBigintIndexs(values[4]))
+                this.authorPaperIndex = convertIndexTuples(convertBigintIndexs(""))
+                this.paperIndex = convertIndexTuples(convertBigintIndexs(""))
+                this.prbIndex = convertIndexTuples(convertBigintIndexs(""))
             })
         }
 

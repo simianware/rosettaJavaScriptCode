@@ -1,8 +1,21 @@
 const express = require('express')
+const helmet = require('helmet')
+const cors = require('cors')
 const app = express()
-const port = 80
+app.use(helmet())
+app.use(cors())
+
+import * as fs from 'fs'
+import * as path from 'path'
+
+const options = {
+    key: fs.readFileSync("C:\\Certbot\\live\\rosetta.eastus.cloudapp.azure.com\\privkey.pem"),
+    cert: fs.readFileSync("C:\\Certbot\\live\\rosetta.eastus.cloudapp.azure.com\\fullchain.pem")
+}
+const port = 443
 const nacl = require('tweetnacl')
 
+console.log(options)
 
 import { df } from "./DataFetcher"
 // import * as df from './DataFetcher'
@@ -11,12 +24,10 @@ import { encryption } from './encryption'
 
 import sha256 = require("crypto-js/sha256");
 
-import * as path from 'path'
-
 let serverkeys = nacl.box.keyPair()
 
 // const datafetcher:df.df.DataFetcher = new df.df.ArweaveDataFetcher()
-const datafetcher:df.DataFetcher = new df.OnSiteDataFetcher(path.join("G:", 'indexs'), path.join("G:", 'Downloads'))
+const datafetcher:df.DataFetcher = new df.OnSiteDataFetcher(path.join("F:", 'indexs'), path.join("F:", 'Downloads'))
 const indexer = new indexing.IndexHandler(datafetcher)
 indexer.initialize()
 
@@ -70,6 +81,12 @@ app.post('/api/sendemailencrypted/:emailaddress/:id/:publickey', (req, res) => {
     res.send('ack')
 })
 
-app.listen(port, () => {
+app.listen(80, () => {
     console.log('Example app listening at http://localhost:${port}')
+})
+
+const https = require('https')
+
+const server = https.createServer(options, app).listen(port,  () => {
+    console.log(`Example app listening at http://localhost:${port}`)
 })
