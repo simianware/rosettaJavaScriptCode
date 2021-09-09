@@ -44,24 +44,40 @@ app.get('/api/getauthors/:name/', async (req, res) => {
     res.send(JSON.stringify(result))
 })
 
+app.get('/api/getauthorpapers/:id/', async (req, res) => {
+    let id = req.params.id
+    console.log(namestring)
+    let result
+    await indexer.findAuthorPapers(id).then(data => {
+        result = data
+    })
+    console.log(result)
+    res.send(JSON.stringify(result))
+})
+
+app.get('/api/getauthorswithpaper/:name/', async (req, res) => {
+    let namestring = req.params.name
+    console.log(namestring)
+    let result
+    await indexer.findAuthorRowsNonNormalizedWithPapers(namestring, 100).then(data => {
+        result = data
+    })
+    console.log(result)
+    res.send(JSON.stringify(result))
+})
+
 app.get('/api/getauthorsencrypted/:message/:publickey', async (req, res) => {
     let publickey:Uint8Array = encryption.constructUint8ArrayFrom(req.params.publickey)
     let message: encryption.Message = encryption.constructMessageFromString(req.params.message)
     let namestring = encryption.decryptText(message, publickey, serverkeys.secretKey)
     console.log(namestring)
     let result
-    await indexer.findAuthorRowsNonNormalized(namestring, 100).then(data => {
+    await indexer.findAuthorRowsNonNormalizedWithPapers(namestring, 100).then(data => {
         result = data
     })
     console.log(result)
     const encryptedMessage = encryption.encryptText(JSON.stringify(result), publickey, serverkeys.secretKey)
     res.send(encryptedMessage.asString())
-})
-
-app.get('/api/getpublickey/', (req, res) => {
-    res.send(
-        encryption.U8IntArrayToArray(serverkeys.publicKey)
-        )
 })
 
 app.post('/api/sendemail/:emailaddress/:id/', (req, res) => {

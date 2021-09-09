@@ -392,10 +392,30 @@ export module indexing {
             return map
         }
 
+        async findAuthorPapers(id: number): Promise<PaperRow[]> {
+            let authorPapersMap = await this.findPapersOf([id])
+            return authorPapersMap.get(id)
+        }
+
         async findAuthorRowsNonNormalized(name: string, maxResults: number = 100): Promise<AuthorRow[]> {
             let normname = name.toLocaleLowerCase().normalize("NFKD").split(" ")
             // let normname = name.replace
-            let authorRows = await this.findNameRows(normname, this.authorNameIndex, this.authorIndex, Number, (s:string) => new AuthorRow(s))
+            let authorRows = await this.findNameRows(normname, 
+                this.authorNameIndex, this.authorIndex, Number, (s:string) => new AuthorRow(s))
+            let authorIndexs = []
+            authorRows.forEach(author => authorIndexs.push(author.authorId))
+            let authorRowsArr: AuthorRow[] = []
+            authorRows.forEach((authorRow, index) => {
+                authorRowsArr.push(authorRow)
+            })
+            return authorRowsArr
+        }
+
+        async findAuthorRowsNonNormalizedWithPapers(name: string, maxResults: number = 100): Promise<AuthorRow[]> {
+            let normname = name.toLocaleLowerCase().normalize("NFKD").split(" ")
+            // let normname = name.replace
+            let authorRows = await this.findNameRows(normname, 
+                this.authorNameIndex, this.authorIndex, Number, (s:string) => new AuthorRow(s))
             let authorIndexs = []
             authorRows.forEach(author => authorIndexs.push(author.authorId))
             let authorPapersMap = await this.findPapersOf(authorIndexs)
