@@ -334,7 +334,8 @@ export module indexing {
         }
 
         async findIndexRows<V, R>(indexs: V[], rowIndexSet: IndexSet<V,string>, stringToRow: (s: string) => R,
-            maxResults:Number = 1000): Promise<Map<V, R>> {
+            maxResults:Number = 100): Promise<Map<V, R>> {
+            console.log(`maxres ${maxResults}`)
             let rows:Map<V, R> = new Map()
             let dict = rowIndexSet.getIndexForHashMap(indexs)
             await this.processIndexDict(dict, (authorlines, bigintforhash) => {
@@ -355,19 +356,17 @@ export module indexing {
 
         async findNameRows<K, V, R>(keys: K[],
             nameIndexSet:IndexSet<K, string>, rowIndexSet: IndexSet<V, string>, stringToIndex: (s: string) => V,
-            stringToRow: (s: string) => R, maxResults: number = 1000): Promise<Map<V, R>> {
+            stringToRow: (s: string) => R, maxResults: number = 100): Promise<Map<V, R>> {
             let authorindexs:V[]
             await this.findPossibleIndexsForKeys(keys, nameIndexSet, stringToIndex).then(data => {
                 authorindexs = data
             })
-            console.log('authorindex', authorindexs.length)
             return this.findIndexRows(authorindexs, rowIndexSet, stringToRow, maxResults)
         }
 
         async findPapersOf(authorIndexes: number[]): Promise<Map<number, PaperRow[]>> {
             let map: Map<number, PaperRow[]> = new Map()
             let authorToPapersMap: Map<number, number[]> = await this.findIndexMapping(authorIndexes, this.authorPaperIndex, Number)
-            console.log('author papers', authorToPapersMap)
             let neededPapers: Set<number> = new Set()
             authorToPapersMap.forEach((paperIds, authorId) => {
                 paperIds.forEach(paperId => neededPapers.add(paperId))
@@ -376,8 +375,6 @@ export module indexing {
             let prbscores: Map<number, number> = await this.findIndexRows(Array.from(neededPapers), this.prbIndex, (s: string) => {
                 return Number(s.split('\t')[1])
             })
-            console.log(prbscores)
-            console.log(neededPapers)
             neededPapers.forEach(paperId => {
                 if (paperMap.has(paperId) && prbscores.has(paperId)) {
                     paperMap.get(paperId).prbScore = prbscores.get(paperId)
@@ -395,7 +392,7 @@ export module indexing {
             return map
         }
 
-        async findAuthorRowsNonNormalized(name: string, maxResults: number = 1000): Promise<AuthorRow[]> {
+        async findAuthorRowsNonNormalized(name: string, maxResults: number = 100): Promise<AuthorRow[]> {
             let normname = name.toLocaleLowerCase().normalize("NFKD").split(" ")
             // let normname = name.replace
             let authorRows = await this.findNameRows(normname, this.authorNameIndex, this.authorIndex, Number, (s:string) => new AuthorRow(s))
@@ -451,7 +448,6 @@ export module indexing {
                 for (let i = 0; i < values.length; i++) {
                     const valueforIndex = valueForIndexList[i]
                     const nameindex = values[i].split("\n")
-                    console.log(valueforIndex)
                     stop = stop || !func(nameindex, valueforIndex)
                     if (stop) {
                         break
