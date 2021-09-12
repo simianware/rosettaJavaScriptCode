@@ -203,6 +203,10 @@ class RangeIndexer<K,V> implements Indexer<K,V> {
     sortValue(): K {
         return this.leastIndex
     }
+
+    toString(): string {
+        return `${this.leastIndex} ${this.mostIndex}`
+    }
 }
 
 class IndexSet<K, V> {
@@ -275,12 +279,13 @@ export module indexing {
                  this.datafetcher.getIndexFile(df.df.FetchRequest.AUTHORNAMEINDEX),
                  this.datafetcher.getIndexFile(df.df.FetchRequest.AUTHORINDEX),
                  this.datafetcher.getIndexFile(df.df.FetchRequest.AUTHORPAPERINDEX),
-                 this.datafetcher.getIndexFile(df.df.FetchRequest.PAPERINDEX)]).then(values => {
+                 this.datafetcher.getIndexFile(df.df.FetchRequest.PAPERINDEX),
+                 this.datafetcher.getIndexFile(df.df.FetchRequest.PRBPAPERINDEX)]).then(values => {
                 this.authorNameIndex = convertIndexTuples(convertStringIndexs(values[0]))
                 this.authorIndex = convertIndexTuples(convertBigintIndexs(values[1]))
-                this.authorPaperIndex = convertIndexTuples(convertBigintIndexs(""))
-                this.paperIndex = convertIndexTuples(convertBigintIndexs(""))
-                this.prbIndex = convertIndexTuples(convertBigintIndexs(""))
+                this.authorPaperIndex = convertIndexTuples(convertBigintIndexs(values[2]))
+                this.paperIndex = convertIndexTuples(convertBigintIndexs(values[3]))
+                this.prbIndex = convertIndexTuples(convertBigintIndexs(values[4]))
             })
         }
 
@@ -335,7 +340,6 @@ export module indexing {
 
         async findIndexRows<V, R>(indexs: V[], rowIndexSet: IndexSet<V,string>, stringToRow: (s: string) => R,
             maxResults:Number = 100): Promise<Map<V, R>> {
-            console.log(`maxres ${maxResults}`)
             let rows:Map<V, R> = new Map()
             let dict = rowIndexSet.getIndexForHashMap(indexs)
             await this.processIndexDict(dict, (authorlines, bigintforhash) => {
@@ -427,7 +431,7 @@ export module indexing {
                 if (authorRow.papers != null){
                     authorRow.papers.forEach(paper => {
                         if (typeof paper.prbScore !== 'undefined') {
-                            authorRow.prbScore += paper.prbScore - 0.15
+                            authorRow.prbScore += paper.prbScore
                         }
                     })
                 }

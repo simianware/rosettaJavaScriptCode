@@ -64,7 +64,7 @@ export module df {
                         path.join('authorpaperchunk', 'authorpaperchunkindex.txt'))
                 case FetchRequest.PRBPAPERINDEX:
                     return this.getDataString(
-                        path.join('prbchunk', 'prbchunkindex.txt'))
+                        path.join('prbchunks', 'prbchunksindex.txt'))
             }
         }
     

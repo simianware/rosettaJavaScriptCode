@@ -1,9 +1,11 @@
+var compression = require('compression')
 const express = require('express')
 const helmet = require('helmet')
 const cors = require('cors')
 const app = express()
 app.use(helmet())
 app.use(cors())
+app.use(compression())
 
 import * as fs from 'fs'
 import * as path from 'path'
@@ -33,7 +35,7 @@ indexer.initialize()
 
 // function 
 
-app.get('/api/getauthors/:name/', async (req, res) => {
+app.get('/api/getauthorswithname/:name/', async (req, res) => {
     let namestring = req.params.name
     console.log(namestring)
     let result
@@ -45,8 +47,8 @@ app.get('/api/getauthors/:name/', async (req, res) => {
 })
 
 app.get('/api/getauthorpapers/:id/', async (req, res) => {
-    let id = req.params.id
-    console.log(namestring)
+    let id = Number(req.params.id)
+    console.log(id)
     let result
     await indexer.findAuthorPapers(id).then(data => {
         result = data
@@ -55,7 +57,7 @@ app.get('/api/getauthorpapers/:id/', async (req, res) => {
     res.send(JSON.stringify(result))
 })
 
-app.get('/api/getauthorswithpaper/:name/', async (req, res) => {
+app.get('/api/getauthors/:name/', async (req, res) => {
     let namestring = req.params.name
     console.log(namestring)
     let result
