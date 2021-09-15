@@ -554,34 +554,3 @@ function findRowInFile<V>(authorlines: string[], index: V): string {
     })
     return result
 }
-
-// const datafetcher:df.df.DataFetcher = new df.df.ArweaveDataFetcher()
-// const datafetcher:df.df.DataFetcher = new df.df.OnSiteDataFetcher(path.join("E:", 'indexs'), path.join("E:", 'Downloads'))
-// const indexer = new indexing.IndexHandler(datafetcher)
-
-// async function main() {
-//     await indexer.initialize();
-//     console.log('initialized')
-//     // console.log(indexer.findIndexsForName(["simon", "ware"]))
-//     // indexer.findPossibleAuthorIndexsForName(["simon", "ware"]).then(data => console.log(data))
-//     // indexer.findPossibleAuthorIndexsForName(["simon", "ian", "ware"]).then(data => console.log(data))
-//     // indexer.findPossibleAuthorIndexsForName(["simon", "ware"]).then(data => {
-//     //     console.log(indexer.findIndexsForAuthor(data))
-//     //     console.log('possible_authors')
-//     // })
-//     // indexer.findPossibleAuthorIndexsForName(["steve", "reeves"]).then(data => console.log(data))
-//     // indexer.findAuthorRows(["steve", "reeves"]).then(data => console.log(data))
-//     // indexer.findAuthorRows(["simon", "ware"]).then(data => {
-//     //     console.log('rows') 
-//     //     console.log(data)
-//     // })
-//     indexer.findAuthorRowsNonNormalized("Simon Ware").then(data => {
-//         console.log('rows') 
-//         console.log(data)
-//     })
-//     // indexer.findAuthorRows(["simon", "ian", "ware"]).then(data => console.log(data))
-//     // indexer.findAuthorRows(["robi", "malik"]).then(data => console.log(data))
-//     // indexer.findAuthorRows(["steve", "reeves"]).then(data => console.log(data))
-// }
-
-// main()
