@@ -276,21 +276,16 @@ export module indexing {
 
         async initialize() {
             await Promise.all([                
-                 this.datafetcher.getIndexFile(df.df.FetchRequest.AUTHORNAMEINDEX, (err, s) => {
-                    this.authorNameIndex = convertIndexTuples(convertStringIndexs(s))
-                 }),
-                 this.datafetcher.getIndexFile(df.df.FetchRequest.AUTHORINDEX, (err, s) => {
-                    this.authorIndex = convertIndexTuples(convertBigintIndexs(s))
-                 }),
-                 this.datafetcher.getIndexFile(df.df.FetchRequest.AUTHORPAPERINDEX, (err, s) => {
-                    this.authorPaperIndex = convertIndexTuples(convertBigintIndexs(s))
-                 }),
-                 this.datafetcher.getIndexFile(df.df.FetchRequest.PAPERINDEX, (err, s) => {
-                    this.paperIndex = convertIndexTuples(convertBigintIndexs(s))
-                 }),
-                 this.datafetcher.getIndexFile(df.df.FetchRequest.PRBPAPERINDEX, (err, s) => {
-                    this.prbIndex = convertIndexTuples(convertBigintIndexs(s))
-                 })]).then(values => {
+                 this.datafetcher.getIndexFile(df.df.FetchRequest.AUTHORNAMEINDEX),
+                 this.datafetcher.getIndexFile(df.df.FetchRequest.AUTHORINDEX),
+                 this.datafetcher.getIndexFile(df.df.FetchRequest.AUTHORPAPERINDEX),
+                 this.datafetcher.getIndexFile(df.df.FetchRequest.PAPERINDEX),
+                 this.datafetcher.getIndexFile(df.df.FetchRequest.PRBPAPERINDEX)]).then(values => {
+                this.authorNameIndex = convertIndexTuples(convertStringIndexs(values[0]))
+                this.authorIndex = convertIndexTuples(convertBigintIndexs(values[1]))
+                this.authorPaperIndex = convertIndexTuples(convertBigintIndexs(values[2]))
+                this.paperIndex = convertIndexTuples(convertBigintIndexs(values[3]))
+                this.prbIndex = convertIndexTuples(convertBigintIndexs(values[4]))
             })
         }
 
@@ -448,25 +443,41 @@ export module indexing {
             let iterator = dict.entries()
             let itresult = iterator.next()
             let valueForIndexList:Array<T> = []
-            let promises: Promise<void>[] = []
+            let promises: Promise<string>[] = []
             let stop = false
             while (!itresult.done) {
                 let [hash, namesforindex] = itresult.value
-                promises.push(this.datafetcher.getDataString(hash, (err, value) => {
-                    const valueforIndex = namesforindex
-                    const nameindex = value.split("\n")
-                    stop = stop || !func(nameindex, valueforIndex)
-                }))
+                valueForIndexList.push(namesforindex)
+                promises.push(this.datafetcher.getDataString(hash))
                 if (promises.length >= batchsize) {
-                    await Promise.all(promises).then(values => {})
+                    await Promise.all(promises).then(values => { 
+                        for (let i = 0; i < values.length; i++) {
+                            const valueforIndex = valueForIndexList[i]
+                            const nameindex = values[i].split("\n")
+                            stop = stop || !func(nameindex, valueforIndex)
+                            if (stop) {
+                                break
+                            }
+                        }
+                    })
                     promises = []
+                    valueForIndexList = []
                     if (stop) {
                         break
                     }
                 }
                 itresult = iterator.next()
             }
-            await Promise.all(promises).then(values => {})
+            await Promise.all(promises).then(values => { 
+                for (let i = 0; i < values.length; i++) {
+                    const valueforIndex = valueForIndexList[i]
+                    const nameindex = values[i].split("\n")
+                    stop = stop || !func(nameindex, valueforIndex)
+                    if (stop) {
+                        break
+                    }
+                }
+            })
         }
     }
 }
