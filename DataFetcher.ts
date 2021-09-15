@@ -16,9 +16,9 @@ export module df {
     }
 
     export interface DataFetcher {
-        getDataString(hash:string): Promise<string>
+        getDataString(hash:string, callback: (err: NodeJS.ErrnoException, s: string) => void): Promise<void>
 
-        getIndexFile(fetchType: FetchRequest, otherKeys?: bigint)
+        getIndexFile(fetchType: FetchRequest, callback: (err: NodeJS.ErrnoException, s: string) => void)
 
     // getNameIndexFile(): Promise<string>
 
@@ -40,52 +40,34 @@ export module df {
             this.outputdirectory = outputdirectory
         }
 
-        async getDataString(hash: string): Promise<string> {
-            let result: string
-            result = fs.readFileSync(path.join(this.indexdirectory, hash), {encoding:'utf-8'})
-            return new Promise((resolve, reject) => {
-                resolve(result)
-            })
+        async getDataString(hash: string, callback: (err: NodeJS.ErrnoException, s: string) => void): Promise<void> {
+            return fs.readFile(path.join(this.indexdirectory, hash), {encoding:'utf-8'}, callback)
         }
 
-        getIndexFile(fetchType: FetchRequest, otherKeys: BigInt = BigInt(0)) {
+        async getIndexFile(fetchType: FetchRequest,
+         callback: (err: NodeJS.ErrnoException, s: string) => void) {
             switch (fetchType) {
                 case FetchRequest.AUTHORNAMEINDEX:
-                    return this.getDataString(
-                        path.join('AuthorName', 'AuthorNameindex.txt'))
+                    this.getDataString(
+                        path.join('AuthorName', 'AuthorNameindex.txt'), callback)
+                    break
                 case FetchRequest.AUTHORINDEX:
-                    return this.getDataString(
-                        path.join('authorchunk', 'authorchunkindex.txt'))
+                    this.getDataString(
+                        path.join('authorchunk', 'authorchunkindex.txt'), callback)
+                    break
                 case FetchRequest.PAPERINDEX:
-                    return this.getDataString(
-                        path.join('paperchunk', 'paperchunkindex.txt'))
+                    this.getDataString(
+                        path.join('paperchunk', 'paperchunkindex.txt'), callback)
+                    break
                 case FetchRequest.AUTHORPAPERINDEX:
-                    return this.getDataString(
-                        path.join('authorpaperchunk', 'authorpaperchunkindex.txt'))
+                    this.getDataString(
+                        path.join('authorpaperchunk', 'authorpaperchunkindex.txt'), callback)
+                    break
                 case FetchRequest.PRBPAPERINDEX:
-                    return this.getDataString(
-                        path.join('prbchunks', 'prbchunksindex.txt'))
+                    this.getDataString(
+                        path.join('prbchunks', 'prbchunksindex.txt'), callback)
+                    break
             }
-        }
-    
-        getNameIndexFile(): Promise<string> {
-            return this.getDataString(
-                path.join('indexofindexs.txt'))
-        }
-    
-        getAuthorIndexFile(): Promise<string> {
-            return this.getDataString(
-                path.join('authorchunkindex.txt'))
-        }
-
-        getAuthorPaperIndexFile(): Promise<string> {
-            return this.getDataString(
-                path.join('authorpaperchunkindex.txt'))
-        }
-    
-        getPaperIndexFile(): Promise<string> {
-            return this.getDataString(
-                path.join('paperchunkindex.txt'))
         }
 
         appendToFile(id, val, filepath): void {
@@ -93,67 +75,55 @@ export module df {
                 flag: 'a'
             })
         }
-    }    
-
-    export class ArweaveDataFetcher implements DataFetcher {
-        arweave: Arweave
-        textencoder: TextDecoder
-
-        constructor() {
-            this.arweave = Arweave.init({
-                host: 'amp-gw.online',// Hostname or IP address for a Arweave host
-                port: 443,          // Port
-                protocol: 'https',  // Network protocol http or https
-                timeout: 20000,     // Network request timeouts in milliseconds
-                logging: false,     // Enable network request logging
-            });
-            this.textencoder = new TextDecoder
-        }
-        appendToFile(id: any, val: any, filepath: any) {
-            throw new Error('Method not implemented.');
-        }
-
-        getAuthorPaperIndexFile(): Promise<string> {
-            throw new Error('Method not implemented.');
-        }
-
-        getIndexFile(fetchType: FetchRequest, otherKeys: BigInt = BigInt(0)) {
-            switch (fetchType) {
-                case FetchRequest.AUTHORNAMEINDEX:
-                    return this.getDataString(
-                        path.join('E:', 'indexs', 'indexofindexs.txt'))
-                case FetchRequest.AUTHORINDEX:
-                    return this.getDataString(
-                        path.join('E:', 'indexs', 'authorchunkindex.txt'))
-                case FetchRequest.PAPERINDEX:
-                    return this.getDataString(
-                        path.join('E:', 'indexs', 'paperchunkindex.txt'))
-                case FetchRequest.AUTHORPAPERINDEX:
-                    return this.getDataString(
-                        path.join('E:', 'indexs', 'authorpaperchunkindex.txt'))
-            }
-        }
-
-        getDataString(hash: string): Promise<string> {
-            let date = new Date()
-            let start_download = date.getTime();
-            return new Promise((resolve, reject) => {
-                this.arweave.transactions.getData(hash, {decode: true, string: true}).then(
-                    data => {
-                        let retrievedTime = new Date()
-                        console.log(retrievedTime.getTime() - start_download)
-                        resolve(data as string)
-                    }).catch(err => reject(err))
-            })
-        }
-        getNameIndexFile(): Promise<string> {
-            return this.getDataString('g3y3m4q_WlObrSBEql_m1Ee1f5HB9NkZxN4PJmw-MZY')
-        }
-        getAuthorIndexFile(): Promise<string> {
-            return this.getDataString('sZEdL-nOVVZw6Wf76Xw8oiJa1JtIhhGQAI8AhopQZQ8')
-        }
-        getPaperIndexFile(): Promise<string> {
-            throw new Error('Method not implemented.');
-        }
     }
+
+    // export class ArweaveDataFetcher implements DataFetcher {
+    //     arweave: Arweave
+    //     textencoder: TextDecoder
+
+    //     constructor() {
+    //         this.arweave = Arweave.init({
+    //             host: 'amp-gw.online',// Hostname or IP address for a Arweave host
+    //             port: 443,          // Port
+    //             protocol: 'https',  // Network protocol http or https
+    //             timeout: 20000,     // Network request timeouts in milliseconds
+    //             logging: false,     // Enable network request logging
+    //         });
+    //         this.textencoder = new TextDecoder
+    //     }
+    //     appendToFile(id: any, val: any, filepath: any) {
+    //         throw new Error('Method not implemented.');
+    //     }
+
+    //     getAuthorPaperIndexFile(): Promise<string> {
+    //         throw new Error('Method not implemented.');
+    //     }
+
+    //     getIndexFile(fetchType: FetchRequest, callback: (err: NodeJS.ErrnoException, s: string) => void) {
+    //         switch (fetchType) {
+    //         }
+    //     }
+
+    //     getDataString(hash: string, callback: (err: NodeJS.ErrnoException, s: string) => void): Promise<void> {
+    //         let date = new Date()
+    //         let start_download = date.getTime();
+    //         return new Promise((resolve, reject) => {
+    //             this.arweave.transactions.getData(hash, {decode: true, string: true}).then(
+    //                 data => {
+    //                     let retrievedTime = new Date()
+    //                     console.log(retrievedTime.getTime() - start_download)
+    //                     resolve(data as string)
+    //                 }).catch(err => reject(err))
+    //         })
+    //     }
+    //     getNameIndexFile(): Promise<string> {
+    //         return this.getDataString('g3y3m4q_WlObrSBEql_m1Ee1f5HB9NkZxN4PJmw-MZY')
+    //     }
+    //     getAuthorIndexFile(): Promise<string> {
+    //         return this.getDataString('sZEdL-nOVVZw6Wf76Xw8oiJa1JtIhhGQAI8AhopQZQ8')
+    //     }
+    //     getPaperIndexFile(): Promise<string> {
+    //         throw new Error('Method not implemented.');
+    //     }
+    // }
 }
