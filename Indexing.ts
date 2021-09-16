@@ -295,7 +295,7 @@ export module indexing {
             let indexfiles = indexSet.getIndexForHashMap(keys)
             await this.processIndexDict(indexfiles, (indexfile, keys) => {
                 keys.forEach(key => {
-                    let indexs = findAuthorIndexsForName(indexfile, String(key), stringToIndex)
+                    let indexs = findAuthorIndexsForNameOne(indexfile, String(key), stringToIndex)
                     if (indexs.length != 0) {
                         if (result == null) {
                             result = new Set(indexs)
@@ -326,11 +326,9 @@ export module indexing {
             let result:Map<K, V[]> = new Map()
             let indexfiles: Map<string, K[]> = indexSet.getIndexForHashMap(keys)
             await this.processIndexDict(indexfiles, (indexfile, keys) => {
-                for (let i = 0; i < indexfile.length; i++) {
-                    indexfile[i] = indexfile[i].split(' ').join('\t')
-                }
+                indexfile = indexfile.split(' ').join('\t')
                 keys.forEach(k => {
-                    let indexs = findAuthorIndexsForName(indexfile, String(k), stringToIndex)
+                    let indexs = findAuthorIndexsForNameOne(indexfile, String(k), stringToIndex)
                     result.set(k, indexs)
                 })
                 return true
@@ -345,7 +343,7 @@ export module indexing {
             await this.processIndexDict(dict, (authorlines, bigintforhash) => {
                 for (let i = 0; i < bigintforhash.length; i++) {
                     let authorindex = bigintforhash[i]
-                    const row = findRowInFile(authorlines, authorindex)
+                    const row = findRowInFileOne(authorlines, authorindex)
                     if (row != null) {
                         rows.set(authorindex, stringToRow(row))
                     }
@@ -439,7 +437,7 @@ export module indexing {
             return authorRowsArr
         }
 
-        async processIndexDict<T>(dict: Map<string, T>, func: (s: string[], t: T) => boolean, batchsize: number = 50) {
+        async processIndexDict<T>(dict: Map<string, T>, func: (s: string, t: T) => boolean, batchsize: number = 50) {
             let iterator = dict.entries()
             let itresult = iterator.next()
             let valueForIndexList:Array<T> = []
@@ -453,7 +451,7 @@ export module indexing {
                     await Promise.all(promises).then(values => { 
                         for (let i = 0; i < values.length; i++) {
                             const valueforIndex = valueForIndexList[i]
-                            const nameindex = values[i].split("\n")
+                            const nameindex = values[i]
                             stop = stop || !func(nameindex, valueforIndex)
                             if (stop) {
                                 break
@@ -471,7 +469,7 @@ export module indexing {
             await Promise.all(promises).then(values => { 
                 for (let i = 0; i < values.length; i++) {
                     const valueforIndex = valueForIndexList[i]
-                    const nameindex = values[i].split("\n")
+                    const nameindex = values[i]
                     stop = stop || !func(nameindex, valueforIndex)
                     if (stop) {
                         break
@@ -533,17 +531,6 @@ function findAuthorIndexsForName<T>(nameIndexs: string[],
     return result
 }
 
-function findAuthorInFile(authorlines: string[], index: bigint): string {
-    let stringindex = index + "\t"
-    let result = ""
-    authorlines.forEach(line => {
-        if (line.startsWith(stringindex)) {
-            result = line
-        }
-    })
-    return result
-}
-
 function findRowInFile<V>(authorlines: string[], index: V): string {
     let stringindex = index + "\t"
     let result = null
@@ -553,4 +540,47 @@ function findRowInFile<V>(authorlines: string[], index: V): string {
         }
     })
     return result
+}
+
+function getslicefrom(stringfile: string, startindex: number): string {
+    for (let i = startindex+1; i < stringfile.length; i++) {
+        if (stringfile[i] == '\n') {
+            return stringfile.slice(startindex, i-1)
+        }
+    }
+    return stringfile.slice(startindex)
+}
+
+function findAuthorIndexsForNameOne<T>(nameIndexs: string,
+    name: string, stringtoindex: (s: string) => T): T[] {
+    let result:T[] = []
+    let modname = name + "\t"
+    let line:string = ""
+    if (nameIndexs.startsWith(modname)) {
+        line = getslicefrom(nameIndexs, 0)
+    } else {
+        let startindex = nameIndexs.search("\n" + modname)
+        if (startindex != -1) {
+            line = getslicefrom(nameIndexs, startindex)
+        }
+    }
+    let splitline = line.split('\t')
+    for (let i = 1; i < splitline.length; i++) {
+         result.push(stringtoindex(splitline[i]))
+    }
+    return result
+}
+
+function findRowInFileOne<V>(authorlines: string, index: V): string {
+    let modname = name + "\t"
+    let line:string = ""
+    if (authorlines.startsWith(modname)) {
+        line = getslicefrom(authorlines, 0)
+    } else {
+        let startindex = authorlines.search("\n" + modname)
+        if (startindex != -1) {
+            line = getslicefrom(authorlines, startindex)
+        }
+    }
+    return line
 }
