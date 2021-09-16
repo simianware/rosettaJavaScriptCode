@@ -326,7 +326,6 @@ export module indexing {
             let result:Map<K, V[]> = new Map()
             let indexfiles: Map<string, K[]> = indexSet.getIndexForHashMap(keys)
             await this.processIndexDict(indexfiles, (indexfile, keys) => {
-                indexfile = indexfile.split(' ').join('\t')
                 keys.forEach(k => {
                     let indexs = findAuthorIndexsForNameOne(indexfile, String(k), stringToIndex)
                     result.set(k, indexs)
@@ -572,7 +571,7 @@ function findAuthorIndexsForNameOne<T>(nameIndexs: string,
 }
 
 function findRowInFileOne<V>(authorlines: string, index: V): string {
-    let modname = name + "\t"
+    let modname = index + "\t"
     let line:string = ""
     if (authorlines.startsWith(modname)) {
         line = getslicefrom(authorlines, 0)

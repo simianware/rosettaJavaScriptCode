@@ -77,16 +77,16 @@ const fetch = require('node-fetch')
 
 let name = 'ryan'
 
-async function main() {
-    await fetch(`http://rosetta.eastus.cloudapp.azure.com/api/getauthors/${name}`)
-        .then((response) => response.json()
-        .then((data) => console.log(data))
-    // let client = new Client()
-    // // await client.initialize()
-    // let rows = await client.requestAuthorsWithName('simon ware')
-    // // await client.sendAuthorEmail(2009723854, 'sware@gmail.com')
-    // console.log(rows)
-    //     console.log(rows[0].papers)
-}
+// async function main() {
+//     await fetch(`http://rosetta.eastus.cloudapp.azure.com/api/getauthors/${name}`)
+//         .then((response) => response.json()
+//         .then((data) => console.log(data))
+//     // let client = new Client()
+//     // // await client.initialize()
+//     // let rows = await client.requestAuthorsWithName('simon ware')
+//     // // await client.sendAuthorEmail(2009723854, 'sware@gmail.com')
+//     // console.log(rows)
+//     //     console.log(rows[0].papers)
+// }
 
-main()
+// main()
