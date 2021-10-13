@@ -50,6 +50,9 @@ class AffiliationRow {
     }
 }
 
+/**
+ * Represents an author row
+ */
 class AuthorRow {
     authorId: number
     rank: number
