@@ -17,8 +17,6 @@ const options = {
 const port = 443
 const nacl = require('tweetnacl')
 
-console.log(options)
-
 import { df } from "./DataFetcher"
 // import * as df from './DataFetcher'
 import { indexing } from "./Indexing"
@@ -28,12 +26,32 @@ import sha256 = require("crypto-js/sha256");
 
 let serverkeys = nacl.box.keyPair()
 
-// const datafetcher:df.df.DataFetcher = new df.df.ArweaveDataFetcher()
+const datafetcher:df.df.DataFetcher = new df.df.ArweaveDataFetcher()
 const datafetcher:df.DataFetcher = new df.OnSiteDataFetcher(path.join("F:", 'indexs'), path.join("F:", 'Downloads'))
 const indexer = new indexing.IndexHandler(datafetcher)
 indexer.initialize()
 
-// function 
+const CosmosClient = require('@azure/cosmos').CosmosClient
+
+const cosmokey = JSON.parse(fs.readFileSync('cosmokey.json', 'utf8'))
+
+const databaseId = 'rosettadb'
+const containerId = 'userinfo'
+
+const examplemessage = {
+    id: "0",
+    messages: []
+}
+
+const config = {
+    endpoint: null,
+    key: null,
+};
+
+config.endpoint = cosmokey.uri
+config.key = process.env.AUTH_KEY || cosmokey.primarykey
+
+const client = new CosmosClient(config);
 
 app.get('/api/getauthorswithname/:name/', async (req, res) => {
     let namestring = req.params.name
@@ -99,12 +117,129 @@ app.post('/api/sendemailencrypted/:emailaddress/:id/:publickey', (req, res) => {
     res.send('ack')
 })
 
-app.listen(80, () => {
-    console.log('Example app listening at http://localhost:${port}')
+app.get('/api/v1/createuser/:username/:publickey/:authorid', async (req, res) => {
+    console.log(req.params)
+    const { database } = await client.databases.createIfNotExists({ id: databaseId });
+    const { container } = await database.containers.createIfNotExists({ id: containerId });
+    try {
+        await container.items.create({
+            username: req.params.username,
+            publickey: req.params.publickey,
+            authorid: req.params.authorid,
+            messages: []
+        })
+        res.send({
+            statusCode: 200,
+            message: "User created"
+        })
+    } catch (ex) {
+        res.send({
+            statusCode: 401,
+            message: "Unable to create user, user already present"
+        })
+    }
 })
+
+app.get('/api/v1/getuserdata/:username', async (req, res) => {
+    const { database } = await client.databases.createIfNotExists({ id: databaseId });
+    const { container } = await database.containers.createIfNotExists({ id: containerId });
+    const querySpec = {
+        query: "SELECT c.username, c.publickey, c.authorid FROM c WHERE c.username = @username",
+        parameters: [
+          {
+            name: "@username",
+            value: req.params.username
+          }
+        ]
+      };
+    const response = await container.items.query(querySpec).fetchAll()
+    if (response.resources.length == 1) {
+        res.send({
+            status: 200,
+            userdata: response.resources[0]
+        })
+    } else {
+        res.send({
+            status: 404
+        })
+    }
+})
+
+app.get('/api/v1/getusermessages/:username', async (req, res) => {
+    const { database } = await client.databases.createIfNotExists({ id: databaseId });
+    const { container } = await database.containers.createIfNotExists({ id: containerId });
+    const querySpec = {
+        query: "SELECT c.username, c.publickey, c.authorid, c.messages FROM c WHERE c.username = @username",
+        parameters: [
+          {
+            name: "@username",
+            value: req.params.username
+          }
+        ]
+      };
+    const response = await container.items.query(querySpec).fetchAll()
+    if (response.resources.length == 1) {
+        res.send({
+            status: 200,
+            userdata: response.resources[0]
+        })
+    } else {
+        res.send({
+            status: 404
+        })
+    }
+})
+
+app.get('/api/v1/sendmessage/:username/:message', async (req, res) => {
+    const { database } = await client.databases.createIfNotExists({ id: databaseId });
+    const { container } = await database.containers.createIfNotExists({ id: containerId });
+    const timestamp = Date.now()
+    const querySpec = {
+        query: "SELECT c.id FROM c WHERE c.username = @username",
+        parameters: [
+          {
+            name: "@username",
+            value: req.params.username
+          }
+        ]
+      };
+    const response = await container.items.query(querySpec).fetchAll()
+    if (response.resources.length == 1) {
+        for (let i = 0; i < 3; i++) {
+            try {
+                const item = container.item(response.resources[0].id, req.params.username)
+                const { resource } = await item.read()
+                resource.messages.push({
+                    message: req.params.message,
+                    timestamp: timestamp
+                })
+                item.replace(await resource, { accessCondition: { type: "IfMatch", condition: resource._etag } })
+                res.send({
+                    status: 200,
+                })
+                return
+            } catch (err) {
+            }
+        }
+    }
+    res.send({
+        status: 404
+    })
+})
+
+// app.listen(80, () => {
+// })
 
 const https = require('https')
+const http = require('http')
 
 const server = https.createServer(options, app).listen(port,  () => {
-    console.log(`Example app listening at http://localhost:${port}`)
 })
+
+// let server = app.listen(8081, function () {
+//     var host = server.address().address
+//     var port = server.address().port
+    
+//     console.log("Example app listening at http://%s:%s", host, port)
+//  })
+ 
