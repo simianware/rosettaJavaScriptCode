@@ -3,6 +3,7 @@ const express = require('express')
 const helmet = require('helmet')
 const cors = require('cors')
 const app = express()
+const sha256 = require('js-sha256');
 app.use(helmet())
 app.use(cors())
 app.use(compression())
@@ -161,6 +162,30 @@ app.get('/api/v1/getuserdata/:username', async (req, res) => {
     } else {
         res.send({
             status: 404
+        })
+    }
+})
+
+app.get('/api/v1/onboarduser/:onboardingjson', async (req, res) => {
+    const { database } = await client.databases.createIfNotExists({ id: databaseId });
+    const { container } = await database.containers.createIfNotExists({ id: containerId });
+    const onboardingjson = req.params.onboardingjson
+    try {
+        const hashedemail = sha256(req.params.email)
+        await container.items.create({
+            username: hashedemail,
+            publickey: req.params.publickey,
+            authorid: req.params.authorid,
+            messages: []
+        })
+        res.send({
+            statusCode: 200,
+            message: "User created"
+        })
+    } catch (ex) {
+        res.send({
+            statusCode: 401,
+            message: "Unable to create user, user already present"
         })
     }
 })
