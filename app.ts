@@ -3,7 +3,7 @@ const express = require('express')
 const helmet = require('helmet')
 const cors = require('cors')
 const app = express()
-const sha256 = require('js-sha256');
+// const sha256 = require('js-sha256');
 app.use(helmet())
 app.use(cors())
 app.use(compression())
@@ -27,7 +27,7 @@ import sha256 = require("crypto-js/sha256");
 
 let serverkeys = nacl.box.keyPair()
 
-const datafetcher:df.df.DataFetcher = new df.df.ArweaveDataFetcher()
+// const datafetcher:df.df.DataFetcher = new df.df.ArweaveDataFetcher()
 const datafetcher:df.DataFetcher = new df.OnSiteDataFetcher(path.join("F:", 'indexs'), path.join("F:", 'Downloads'))
 const indexer = new indexing.IndexHandler(datafetcher)
 indexer.initialize()
@@ -169,13 +169,15 @@ app.get('/api/v1/getuserdata/:username', async (req, res) => {
 app.get('/api/v1/onboarduser/:onboardingjson', async (req, res) => {
     const { database } = await client.databases.createIfNotExists({ id: databaseId });
     const { container } = await database.containers.createIfNotExists({ id: containerId });
-    const onboardingjson = req.params.onboardingjson
+    const onboardingjson = JSON.parse(req.params.onboardingjson)
     try {
-        const hashedemail = sha256(req.params.email)
+        // const hashedemail = sha256(onboardingjson.email)
+        // console.log(hashedemail)
+        const hashedemail = onboardingjson.email
         await container.items.create({
             username: hashedemail,
-            publickey: req.params.publickey,
-            authorid: req.params.authorid,
+            publickey: onboardingjson.publickey,
+            authorid: onboardingjson.authorid,
             messages: []
         })
         res.send({
